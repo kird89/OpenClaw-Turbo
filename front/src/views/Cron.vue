@@ -15,7 +15,7 @@
         </div>
         <div class="header-actions">
           <button class="refresh-btn" @click="fetchJobs()" :disabled="loading" title="刷新">
-            <svg :class="{ spinning: loading }" viewBox="0 0 24 24" width="16" height="16" fill="none"><path d="M1 4v6h6M23 20v-6h-6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M20.49 9A9 9 0 005.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 013.51 15" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <svg :class="{ spinning: loading }" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/></svg>
           </button>
           <button class="add-btn" @click="openAddForm">
           <svg viewBox="0 0 24 24" width="14" height="14" fill="none">
@@ -39,53 +39,55 @@
       </div>
       <div v-else class="job-list">
         <div v-for="job in jobs" :key="job.id" class="job-card" :class="{ disabled: !job.enabled }">
-          <div class="job-main">
-            <div class="job-left">
-              <div class="job-title-row">
-                <span class="job-name">{{ job.name }}</span>
-                <span class="schedule-badge">{{ formatSchedule(job.schedule) }}</span>
-                <span v-if="job.sessionTarget" class="session-badge" :class="job.sessionTarget">{{ job.sessionTarget === 'isolated' ? '独立会话' : '主会话' }}</span>
-              </div>
-              <div class="job-meta">
-                <span v-if="job.payload?.message" class="job-message">{{ truncate(job.payload.message, 60) }}</span>
-                <span v-if="job.payload?.text" class="job-message">{{ truncate(job.payload.text, 60) }}</span>
-                <span v-if="job.description" class="job-desc">{{ job.description }}</span>
-              </div>
-              <div class="job-times">
-                <span v-if="job.state?.nextRunAtMs" class="time-info">
-                  <svg viewBox="0 0 24 24" width="11" height="11" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/><polyline points="12,6 12,12 16,14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-                  下次: {{ formatTime(job.state.nextRunAtMs) }}
-                </span>
-                <span v-if="job.state?.lastRunAtMs" class="time-info">
-                  最近: {{ formatTime(job.state.lastRunAtMs) }}
-                </span>
-              </div>
+          <!-- 顶行：名称 + 开关 -->
+          <div class="job-top-row">
+            <div class="job-title-area">
+              <span class="job-name">{{ job.name }}</span>
+              <span v-if="job.sessionTarget" class="session-badge" :class="job.sessionTarget">{{ job.sessionTarget === 'isolated' ? '独立' : '主会话' }}</span>
             </div>
-            <div class="job-right">
-              <n-switch size="small" :value="job.enabled" :loading="togglingId === job.id" @update:value="v => toggleJob(job, v)" />
-              <div class="job-actions">
-                <n-tooltip trigger="hover"><template #trigger><button class="icon-btn" @click="doRunJob(job.id)" :disabled="runningId === job.id">
-                  <svg v-if="runningId !== job.id" viewBox="0 0 24 24" width="14" height="14" fill="none"><polygon points="5,3 19,12 5,21" fill="currentColor"/></svg>
-                  <div v-else class="mini-spinner"></div>
-                </button></template>手动执行</n-tooltip>
-                <n-tooltip trigger="hover"><template #trigger><button class="icon-btn" @click="openEditForm(job)">
-                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                </button></template>编辑</n-tooltip>
-                <n-tooltip trigger="hover"><template #trigger><button class="icon-btn" @click="viewRuns(job)">
-                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none"><path d="M12 8v4l3 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="1.5"/></svg>
-                </button></template>运行历史</n-tooltip>
-                <n-tooltip trigger="hover"><template #trigger><button class="icon-btn danger" @click="doRemoveJob(job)" :disabled="deletingId === job.id">
-                  <div v-if="deletingId === job.id" class="mini-spinner"></div>
-                  <svg v-else viewBox="0 0 24 24" width="14" height="14" fill="none"><polyline points="3 6 5 6 21 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                </button></template>删除</n-tooltip>
-              </div>
-            </div>
+            <n-switch size="small" :value="job.enabled" :loading="togglingId === job.id" @update:value="v => toggleJob(job, v)" />
+          </div>
+
+          <!-- 调度信息 -->
+          <div class="job-schedule-line font-mono">
+            <span class="schedule-badge">{{ formatSchedule(job.schedule) }}</span>
+          </div>
+          <div class="job-time-row" v-if="job.state?.nextRunAtMs || job.state?.lastRunAtMs">
+            <span v-if="job.state?.nextRunAtMs" class="next-run">
+              Next: {{ formatTime(job.state.nextRunAtMs) }}
+            </span>
+            <span v-if="job.state?.lastRunAtMs" class="last-run">Last: {{ formatTime(job.state.lastRunAtMs) }}</span>
+          </div>
+
+          <!-- 消息/描述 -->
+          <div class="job-meta" v-if="job.payload?.message || job.payload?.text || job.description">
+            <span v-if="job.payload?.message" class="job-message">{{ truncate(job.payload.message, 50) }}</span>
+            <span v-if="job.payload?.text" class="job-message">{{ truncate(job.payload.text, 50) }}</span>
+            <span v-if="job.description" class="job-desc">{{ job.description }}</span>
+          </div>
+
+          <!-- 操作按钮 — 悬浮显现 -->
+          <div class="job-actions-capsule">
+            <n-tooltip trigger="hover"><template #trigger><button class="icon-btn" @click="doRunJob(job.id)" :disabled="runningId === job.id">
+              <svg v-if="runningId !== job.id" viewBox="0 0 24 24" width="13" height="13" fill="none"><polygon points="5,3 19,12 5,21" fill="currentColor"/></svg>
+              <div v-else class="mini-spinner"></div>
+            </button></template>执行</n-tooltip>
+            <n-tooltip trigger="hover"><template #trigger><button class="icon-btn" @click="openEditForm(job)">
+              <svg viewBox="0 0 24 24" width="13" height="13" fill="none"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button></template>编辑</n-tooltip>
+            <n-tooltip trigger="hover"><template #trigger><button class="icon-btn" @click="viewRuns(job)">
+              <svg viewBox="0 0 24 24" width="13" height="13" fill="none"><path d="M12 8v4l3 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="1.5"/></svg>
+            </button></template>历史</n-tooltip>
+            <n-tooltip trigger="hover"><template #trigger><button class="icon-btn danger" @click="doRemoveJob(job)" :disabled="deletingId === job.id">
+              <div v-if="deletingId === job.id" class="mini-spinner"></div>
+              <svg v-else viewBox="0 0 24 24" width="13" height="13" fill="none"><polyline points="3 6 5 6 21 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button></template>删除</n-tooltip>
           </div>
         </div>
       </div>
 
       <!-- 新增/编辑弹窗 -->
-      <n-modal v-model:show="showForm" preset="card" :title="editingJob ? '编辑任务' : '新增定时任务'" style="max-width: 480px;" :bordered="false" :mask-closable="false" :segmented="{ footer: 'soft' }">
+      <n-modal v-model:show="showForm" preset="card" :title="editingJob ? '编辑任务' : '新增定时任务'" style="max-width: 560px;" :bordered="false" :mask-closable="false" :segmented="{ footer: 'soft' }">
         <div class="form-body">
           <!-- 任务名称 -->
           <div class="form-group">
@@ -102,7 +104,7 @@
           <!-- 请求方式 -->
           <div class="form-group">
             <label class="form-label">请求方式</label>
-            <n-radio-group v-model:value="form.payloadKind" size="small" class="schedule-tabs">
+            <n-radio-group v-model:value="form.payloadKind" size="small" class="schedule-tabs" :theme-overrides="segmentTheme">
               <n-radio-button value="text">文本</n-radio-button>
               <n-radio-button value="event">Agent</n-radio-button>
             </n-radio-group>
@@ -122,7 +124,7 @@
           <!-- 调度方式 -->
           <div class="form-group">
             <label class="form-label">调度方式</label>
-            <n-radio-group v-model:value="form.scheduleKind" size="small" class="schedule-tabs">
+            <n-radio-group v-model:value="form.scheduleKind" size="small" class="schedule-tabs" :theme-overrides="segmentTheme">
               <n-radio-button value="cron">Cron 表达式</n-radio-button>
               <n-radio-button value="every">固定间隔</n-radio-button>
               <n-radio-button value="at">一次性</n-radio-button>
@@ -212,7 +214,7 @@
 
               <div class="form-group">
                 <label class="form-label">通知</label>
-                <n-radio-group v-model:value="form.deliveryMode" size="small">
+                <n-radio-group v-model:value="form.deliveryMode" size="small" :theme-overrides="segmentTheme">
                   <n-radio-button value="none">不通知</n-radio-button>
                   <n-radio-button value="webhook">Webhook</n-radio-button>
                 </n-radio-group>
@@ -273,6 +275,16 @@ import {
 import cache from '@/stores/cache'
 
 const gm = window.$gm || {}
+
+// ===== Segmented Control 主题覆盖（去掉所有 Naive UI 边框） =====
+const segmentTheme = {
+  buttonBorderColor: 'transparent',
+  buttonBorderColorActive: 'transparent',
+  buttonBorderColorHover: 'transparent',
+  buttonBoxShadow: 'none',
+  buttonBoxShadowFocus: 'none',
+  buttonBoxShadowHover: 'none',
+}
 
 // ========== 任务列表 ==========
 const jobs = ref([])
@@ -560,230 +572,391 @@ function formatTime(ms) {
 </script>
 
 <style scoped>
-.cron-page { width: 100%; height: 100%; padding: 20px; box-sizing: border-box; overflow-y: auto; }
-.cron-container { max-width: 880px; margin: 0 auto; }
+.cron-page { width: 100%; height: 100%; padding: 24px 24px; box-sizing: border-box; overflow-y: auto; }
+.cron-container { max-width: 100%; margin: 0 auto; }
 
-/* Fade in animation */
-.fade-in-up { animation: fadeInUp 0.3s ease; }
-@keyframes fadeInUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+/* Fade in */
+.fade-in-up { animation: fadeInUp 0.4s cubic-bezier(0.22, 1, 0.36, 1) both; }
+@keyframes fadeInUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
 
 /* Header */
-.cron-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 20px; }
+.cron-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; }
 .header-left { display: flex; flex-direction: column; gap: 2px; }
-.page-title { font-size: 16px; font-weight: 600; color: var(--jm-accent-8); display: flex; align-items: center; gap: 6px; margin: 0; }
-.header-hint { font-size: 11px; color: var(--jm-accent-4); margin-left: 26px; }
+.page-title { font-size: 16px; font-weight: 700; color: var(--jm-accent-7); display: flex; align-items: center; gap: 8px; margin: 0; letter-spacing: -0.01em; }
+.header-hint { font-size: 11px; color: var(--jm-accent-4); margin-left: 28px; }
 
 .add-btn {
-  display: flex; align-items: center; gap: 5px;
-  padding: 6px 14px; font-size: 12px; font-weight: 500;
-  background: var(--jm-primary-1); color: #fff; border: none; border-radius: 6px; cursor: pointer;
-  transition: all 0.15s;
+  display: flex; align-items: center; gap: 6px;
+  padding: 7px 16px; font-size: 12px; font-weight: 600;
+  background: rgba(var(--jm-primary-1-rgb), 0.12); color: var(--jm-primary-2);
+  border: 1px solid rgba(var(--jm-primary-1-rgb), 0.2);
+  border-radius: 10px; cursor: pointer;
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+  transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+  box-shadow: 0 0 12px rgba(var(--jm-primary-1-rgb), 0.06), var(--jm-glass-inner-glow);
 }
-.add-btn:hover { filter: brightness(1.15); }
+.add-btn:hover { transform: translateY(-1px); background: rgba(var(--jm-primary-1-rgb), 0.18); box-shadow: 0 4px 16px rgba(var(--jm-primary-1-rgb), 0.12); }
 .add-btn.small { margin-top: 12px; padding: 5px 12px; font-size: 11px; }
 
 /* Loading / Empty */
 .loading-state { display: flex; justify-content: center; padding: 60px 0; }
-.loading-spinner { width: 24px; height: 24px; border: 2px solid var(--jm-accent-2); border-top-color: var(--jm-primary-1); border-radius: 50%; animation: spin 0.6s linear infinite; }
+.loading-spinner { width: 22px; height: 22px; border: 2px solid var(--jm-glass-border); border-top-color: var(--jm-primary-1); border-radius: 50%; animation: spin 0.6s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
-.empty-state { display: flex; flex-direction: column; align-items: center; padding: 60px 0; color: var(--jm-accent-4); }
+.empty-state { display: flex; flex-direction: column; align-items: center; padding: 80px 0; color: var(--jm-accent-4); }
 .empty-state p { margin: 12px 0 0; font-size: 13px; }
 .empty-hint { padding: 24px; text-align: center; color: var(--jm-accent-4); font-size: 12px; }
 
-/* Job list */
-.job-list { display: flex; flex-direction: column; gap: 8px; }
+/* ===== Job List — Acrylic Cards ===== */
+.job-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 12px; }
 .job-card {
-  background: var(--jm-bg-2); border: 1px solid var(--jm-accent-1); border-radius: 8px;
-  padding: 14px 16px; transition: all 0.15s;
+  background: var(--jm-glass-bg);
+  backdrop-filter: blur(var(--jm-glass-blur)); -webkit-backdrop-filter: blur(var(--jm-glass-blur));
+  border: 1px solid var(--jm-glass-border);
+  border-radius: 14px;
+  padding: 14px 16px;
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  box-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.06),
+    0 6px 16px rgba(0, 0, 0, 0.04);
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
-.job-card:hover { border-color: var(--jm-primary-1); box-shadow: 0 0 0 1px rgba(var(--jm-primary-rgb, 99,102,241), 0.1); }
-.job-card.disabled { opacity: 0.55; }
+/* 激活态左边框 — 仅3px色条 */
+.job-card::before {
+  content: ''; position: absolute; left: 0; top: 12px; bottom: 12px; width: 3px;
+  border-radius: 0 3px 3px 0;
+  background: var(--jm-primary-1);
+  opacity: 0; transition: opacity 0.3s;
+}
+.job-card:not(.disabled)::before { opacity: 1; }
+.job-card.disabled::before { opacity: 0; }
 
-.job-main { display: flex; justify-content: space-between; gap: 16px; }
-.job-left { flex: 1; min-width: 0; }
-.job-right { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; flex-shrink: 0; }
+.job-card:hover {
+  border-color: var(--jm-glass-border-hover);
+  transform: translateY(-2px);
+  box-shadow:
+    0 2px 4px rgba(0, 0, 0, 0.08),
+    0 12px 28px rgba(0, 0, 0, 0.06);
+}
+.job-card.disabled { opacity: 0.45; }
 
-.job-title-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
-.job-name { font-size: 13px; font-weight: 600; color: var(--jm-accent-8); }
-.schedule-badge { font-size: 10px; padding: 1px 6px; background: var(--jm-accent-1); color: var(--jm-accent-6); border-radius: 4px; white-space: nowrap; }
-.session-badge { font-size: 10px; padding: 1px 6px; border-radius: 4px; }
-.session-badge.isolated { background: rgba(99,102,241,0.12); color: #818cf8; }
-.session-badge.main { background: rgba(251,191,36,0.12); color: #f59e0b; }
+/* Compact card layout */
+.job-top-row {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  padding-left: 8px;
+}
+.job-title-area { display: flex; align-items: center; gap: 6px; min-width: 0; flex: 1; }
+.job-name { font-size: 14px; font-weight: 600; color: var(--jm-accent-7); letter-spacing: -0.01em; }
 
-.job-meta { margin-top: 4px; }
+.schedule-badge {
+  font-size: 10px; padding: 2px 8px; border-radius: 10px; white-space: nowrap;
+  font-family: var(--jm-font-mono);
+  background: rgba(var(--jm-accent-2-rgb), 0.2);
+  border: 1px solid var(--jm-glass-border);
+  color: var(--jm-accent-5);
+}
+.session-badge { font-size: 10px; padding: 2px 8px; border-radius: 10px; font-weight: 500; }
+.session-badge.isolated { background: rgba(99,102,241,0.1); color: #818cf8; border: 1px solid rgba(99,102,241,0.15); }
+.session-badge.main { background: rgba(251,191,36,0.1); color: #f59e0b; border: 1px solid rgba(251,191,36,0.15); }
+
+/* 调度信息行 */
+.job-schedule-line {
+  display: flex; align-items: center; gap: 8px;
+  padding-left: 8px;
+  font-size: 10px; color: var(--jm-accent-4);
+}
+.job-time-row {
+  display: flex; align-items: center; gap: 10px;
+  padding-left: 8px;
+  font-size: 10px; color: var(--jm-accent-4);
+}
+.next-run, .last-run { display: flex; align-items: center; gap: 3px; }
+
+.job-meta { padding-left: 8px; }
 .job-message { font-size: 11px; color: var(--jm-accent-5); display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .job-desc { font-size: 11px; color: var(--jm-accent-4); font-style: italic; }
 
-.job-times { display: flex; gap: 12px; margin-top: 6px; }
-.time-info { font-size: 10px; color: var(--jm-accent-4); display: flex; align-items: center; gap: 3px; }
-
-.job-actions { display: flex; gap: 2px; }
+/* 操作按钮胶囊 — 默认半透明，hover 显现 */
+.job-actions-capsule {
+  display: flex; gap: 2px;
+  padding: 2px;
+  padding-left: 6px;
+  border-radius: 10px;
+  background: rgba(var(--jm-accent-1-rgb), 0.4);
+  opacity: 0;
+  transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transform: translateY(4px);
+}
+.job-card:hover .job-actions-capsule {
+  opacity: 1;
+  transform: translateY(0);
+}
 .icon-btn {
   width: 26px; height: 26px; display: flex; align-items: center; justify-content: center;
-  background: none; border: 1px solid transparent; border-radius: 4px; color: var(--jm-accent-5);
-  cursor: pointer; transition: all 0.15s;
+  background: transparent; border: none;
+  border-radius: 7px; color: var(--jm-accent-5); cursor: pointer;
+  transition: all 0.2s;
 }
-.icon-btn:hover { background: var(--jm-accent-1); color: var(--jm-accent-7); border-color: var(--jm-accent-2); }
-.icon-btn.danger:hover { color: #ef4444; background: rgba(239,68,68,0.08); }
-.icon-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.icon-btn:hover { background: var(--jm-glass-bg-hover); color: var(--jm-accent-7); }
+.icon-btn.danger:hover { color: #ef4444; background: rgba(239,68,68,0.06); }
+.icon-btn:disabled { opacity: 0.3; cursor: not-allowed; }
 
-.mini-spinner { width: 12px; height: 12px; border: 1.5px solid var(--jm-accent-3); border-top-color: var(--jm-primary-1); border-radius: 50%; animation: spin 0.6s linear infinite; }
+.mini-spinner { width: 12px; height: 12px; border: 1.5px solid var(--jm-glass-border); border-top-color: var(--jm-primary-1); border-radius: 50%; animation: spin 0.6s linear infinite; }
 
-/* ===== Form ===== */
-.form-body { display: flex; flex-direction: column; gap: 16px; }
-.form-group { display: flex; flex-direction: column; gap: 5px; }
-.form-label { font-size: 12px; font-weight: 500; color: var(--jm-accent-6); }
+/* ===== Form — Glassmorphic ===== */
+.form-body { display: flex; flex-direction: column; gap: 20px; }
+.form-group { display: flex; flex-direction: column; gap: 6px; }
+.form-label { font-size: 11px; font-weight: 600; color: var(--jm-accent-4); letter-spacing: 0.05em; text-transform: uppercase; }
 .form-label .required { color: #ef4444; }
-.schedule-detail { padding: 10px 12px; background: var(--jm-accent-0, rgba(255,255,255,0.02)); border: 1px solid var(--jm-accent-1); border-radius: 6px; }
 
-.cron-hints { display: flex; gap: 6px; margin-top: 6px; flex-wrap: wrap; }
-.hint-chip {
-  font-size: 10px; padding: 2px 8px; border-radius: 10px; cursor: pointer;
-  background: var(--jm-accent-1); color: var(--jm-accent-5); transition: all 0.15s;
+.schedule-detail {
+  margin-top: 8px;
+  padding: 14px;
+  background: rgba(var(--jm-accent-1-rgb), 0.06);
+  border: none;
+  border-radius: 12px;
+  box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.03);
+  transition: all 0.3s ease;
 }
-.hint-chip:hover { background: var(--jm-primary-1); color: #fff; }
+
+/* Cron hint chips — Neumorphic */
+.cron-hints { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
+.hint-chip {
+  font-size: 10px; padding: 4px 12px; border-radius: 8px; cursor: pointer;
+  font-family: var(--jm-font-mono);
+  background: var(--jm-glass-bg-hover) !important;
+  border: none !important;
+  color: var(--jm-accent-5);
+  transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+  box-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.08),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.05);
+}
+.hint-chip:hover {
+  transform: translateY(-1px);
+  background: rgba(var(--jm-primary-1-rgb), 0.1);
+  border-color: rgba(var(--jm-primary-1-rgb), 0.2);
+  color: var(--jm-primary-2);
+  box-shadow: 0 4px 12px rgba(var(--jm-primary-1-rgb), 0.1);
+}
+.hint-chip:active {
+  transform: translateY(1px);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
+}
 
 .interval-row { display: flex; align-items: center; gap: 6px; }
 .interval-label { font-size: 12px; color: var(--jm-accent-5); white-space: nowrap; }
 
-.form-footer { display: flex; justify-content: flex-end; gap: 8px; }
+.form-footer { display: flex; justify-content: flex-end; gap: 8px; padding-top: 12px; border-top: 1px solid var(--jm-glass-border); }
 
-/* Radio desc card group */
-.radio-desc-group { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+/* ===== Radio Cards — 3D with Spring ===== */
+.radio-desc-group { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .radio-desc-item {
-  display: flex; align-items: flex-start; gap: 8px; padding: 9px 11px;
-  border: 1px solid var(--jm-accent-2); border-radius: 7px; cursor: pointer;
-  transition: all 0.15s; background: var(--jm-bg-2);
+  display: flex; align-items: flex-start; gap: 10px; padding: 12px 14px;
+  border: 1px solid transparent; border-radius: 12px; cursor: pointer;
+  background: var(--jm-glass-bg-hover);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
-.radio-desc-item:hover { border-color: var(--jm-accent-4); }
-.radio-desc-item.active { border-color: #5361F4; background: rgba(83,97,244,0.06); }
-.radio-desc-item > div { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-.rdi-title { font-size: 11px; font-weight: 600; color: var(--jm-accent-8); display: flex; align-items: center; gap: 4px; }
+.radio-desc-item:hover {
+  border-color: var(--jm-glass-border-hover);
+  transform: translateY(-1px);
+}
+.radio-desc-item.active {
+  background: rgba(var(--jm-primary-1-rgb), 0.03);
+  border-color: rgba(var(--jm-primary-1-rgb), 0.2);
+  box-shadow:
+    0 10px 20px rgba(var(--jm-primary-1-rgb), 0.08),
+    inset 0 0 0 1px rgba(var(--jm-primary-1-rgb), 0.1);
+  transform: scale(1.02);
+}
+.radio-desc-item > div { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.rdi-title { font-size: 12px; font-weight: 600; color: var(--jm-accent-7); display: flex; align-items: center; gap: 4px; }
 .rdi-desc  { font-size: 10px; color: var(--jm-accent-4); line-height: 1.4; }
-.rdi-badge { font-size: 9px; padding: 0 5px; border-radius: 6px; font-weight: 500; }
-.rdi-badge.recommended { background: rgba(83,97,244,0.15); color: #5361F4; }
+.rdi-badge { font-size: 9px; padding: 1px 6px; border-radius: 8px; font-weight: 600; }
+.rdi-badge.recommended { background: rgba(var(--jm-primary-1-rgb), 0.12); color: var(--jm-primary-1); }
 
-/* Custom radio dot */
+/* Radio dot — glow when checked */
 .radio-dot {
-  width: 13px; height: 13px; flex-shrink: 0; border-radius: 50%;
+  width: 14px; height: 14px; flex-shrink: 0; border-radius: 50%;
   border: 1.5px solid var(--jm-accent-3); background: transparent;
-  margin-top: 1px; transition: all 0.15s; box-sizing: border-box;
+  margin-top: 2px; transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1); box-sizing: border-box;
 }
-.radio-dot.checked { border-color: #5361F4; background: #5361F4; box-shadow: inset 0 0 0 3px var(--jm-bg-2); }
+.radio-dot.checked {
+  border-color: var(--jm-primary-1); background: var(--jm-primary-1);
+  box-shadow: inset 0 0 0 3px var(--jm-bg-color), 0 0 12px rgba(var(--jm-primary-1-rgb), 0.4);
+}
 
 /* Advanced section */
-.advanced-section { border: 1px solid var(--jm-accent-1); border-radius: 7px; overflow: hidden; }
-.advanced-toggle {
-  display: flex; align-items: center; gap: 6px; padding: 8px 12px;
-  cursor: pointer; font-size: 11px; font-weight: 500; color: var(--jm-accent-5);
-  background: var(--jm-accent-0, rgba(255,255,255,0.02)); user-select: none;
-  transition: background 0.15s;
+.advanced-section {
+  border: 1px solid var(--jm-glass-border); border-radius: 12px; overflow: hidden;
+  background: rgba(var(--jm-accent-1-rgb), 0.08);
 }
-.advanced-toggle:hover { background: var(--jm-accent-1); color: var(--jm-accent-7); }
+.advanced-toggle {
+  display: flex; align-items: center; gap: 6px; padding: 10px 14px;
+  cursor: pointer; font-size: 11px; font-weight: 500; color: var(--jm-accent-4);
+  background: transparent; user-select: none; transition: all 0.2s;
+}
+.advanced-toggle:hover { background: var(--jm-glass-bg); color: var(--jm-accent-6); }
 .advanced-summary { margin-left: auto; font-size: 10px; color: var(--jm-accent-3); font-weight: 400; }
-.advanced-body { display: flex; flex-direction: column; gap: 14px; padding: 14px 12px; border-top: 1px solid var(--jm-accent-1); }
+.advanced-body { display: flex; flex-direction: column; gap: 16px; padding: 16px 14px; border-top: 1px solid var(--jm-glass-border); }
 
 .form-hint { font-size: 10px; color: var(--jm-accent-4); margin-top: 4px; }
 
-/* Runs */
-.runs-list { max-height: 440px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; padding: 2px 0; }
+/* ===== Run History — Frosted Cards ===== */
+.runs-list { max-height: 440px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; padding: 2px 0; }
 .run-row {
   display: flex; align-items: stretch; gap: 0;
-  background: var(--jm-bg-2); border: 1px solid var(--jm-accent-1);
-  border-radius: 7px; overflow: hidden; transition: all 0.15s;
+  background: var(--jm-glass-bg);
+  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--jm-glass-border);
+  border-radius: 12px; overflow: hidden;
+  transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
   cursor: pointer;
 }
-.run-row:hover { border-color: var(--jm-accent-3); }
+.run-row:hover { border-color: var(--jm-glass-border-hover); transform: translateY(-1px); }
 
-/* 左侧状态色条 */
 .run-status-bar { width: 3px; flex-shrink: 0; }
-.run-row.ok    .run-status-bar { background: #22c55e; }
+.run-row.ok    .run-status-bar { background: #3cff7a; box-shadow: 0 0 6px rgba(60,255,122,0.3); }
 .run-row.failed .run-status-bar,
-.run-row.error  .run-status-bar { background: #ef4444; }
-.run-row.running .run-status-bar { background: #818cf8; }
-.run-row:not(.ok):not(.failed):not(.error):not(.running) .run-status-bar { background: var(--jm-accent-2); }
+.run-row.error  .run-status-bar { background: #ef4444; box-shadow: 0 0 6px rgba(239,68,68,0.3); }
+.run-row.running .run-status-bar { background: #818cf8; box-shadow: 0 0 6px rgba(129,140,248,0.3); }
+.run-row:not(.ok):not(.failed):not(.error):not(.running) .run-status-bar { background: var(--jm-accent-3); }
 
-.run-content { flex: 1; padding: 9px 12px; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.run-content { flex: 1; padding: 10px 14px; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
 
 .run-top { display: flex; align-items: center; gap: 8px; min-width: 0; }
 .run-status-badge {
-  flex-shrink: 0; font-size: 10px; font-weight: 600; padding: 1px 7px;
+  flex-shrink: 0; font-size: 10px; font-weight: 600; padding: 2px 8px;
   border-radius: 10px; text-transform: lowercase;
 }
-.run-status-badge.ok      { background: rgba(34,197,94,0.12); color: #22c55e; }
+.run-status-badge.ok      { background: rgba(60,255,122,0.1); color: #3cff7a; }
 .run-status-badge.failed,
-.run-status-badge.error   { background: rgba(239,68,68,0.12);  color: #ef4444; }
-.run-status-badge.running { background: rgba(99,102,241,0.12); color: #818cf8; }
-.run-status-badge:not(.ok):not(.failed):not(.error):not(.running) { background: var(--jm-accent-1); color: var(--jm-accent-5); }
+.run-status-badge.error   { background: rgba(239,68,68,0.1);  color: #ef4444; }
+.run-status-badge.running { background: rgba(129,140,248,0.1); color: #818cf8; }
+.run-status-badge:not(.ok):not(.failed):not(.error):not(.running) { background: rgba(var(--jm-accent-2-rgb), 0.3); color: var(--jm-accent-5); }
 
 .run-summary {
-  font-size: 12px; color: var(--jm-accent-7); overflow: hidden;
+  font-size: 12px; color: var(--jm-accent-6); overflow: hidden;
   text-overflow: ellipsis; white-space: nowrap; flex: 1;
   transition: all 0.2s; cursor: pointer;
 }
-.run-row.expanded {
-  background: var(--jm-bg-3, rgba(255, 255, 255, 0.03));
-}
+.run-row.expanded { background: var(--jm-glass-bg-hover); }
 .run-row.expanded .run-summary {
   white-space: pre-wrap; word-break: break-word; text-overflow: clip; line-height: 1.5;
-  margin-top: 4px; padding-right: 4px;
-  max-height: 240px; overflow-y: auto;
+  margin-top: 4px; padding-right: 4px; max-height: 240px; overflow-y: auto;
 }
-.run-row.expanded .run-summary::-webkit-scrollbar {
-  width: 4px; height: 4px;
-}
-.run-row.expanded .run-summary::-webkit-scrollbar-thumb {
-  background: var(--jm-accent-3); border-radius: 4px;
-}
+.run-row.expanded .run-summary::-webkit-scrollbar { width: 4px; }
+.run-row.expanded .run-summary::-webkit-scrollbar-thumb { background: var(--jm-accent-3); border-radius: 4px; }
 
 .run-bottom { display: flex; align-items: center; gap: 10px; }
-.run-index   { font-size: 10px; color: var(--jm-accent-3); font-variant-numeric: tabular-nums; }
-.run-time    { font-size: 10px; color: var(--jm-accent-4); }
-.run-duration{ font-size: 10px; color: var(--jm-accent-4); }
+.run-index   { font-size: 10px; color: var(--jm-accent-3); font-variant-numeric: tabular-nums; font-family: var(--jm-font-mono); }
+.run-time    { font-size: 10px; color: var(--jm-accent-4); font-family: var(--jm-font-mono); }
+.run-duration{ font-size: 10px; color: var(--jm-accent-4); font-family: var(--jm-font-mono); }
 
-/* ===== Naive UI 主题色覆盖：#5361F4 ===== */
-
-/* 日期选择器 — 选中日期（边框样式） */
+/* ===== Naive UI Overrides ===== */
 :deep(.n-date-panel-date--selected .n-date-panel-date__trigger) {
-  background: rgba(83, 97, 244, 0.12) !important;
+  background: rgba(var(--jm-primary-1-rgb), 0.12) !important;
   border-radius: 8px !important;
-  box-shadow: inset 0 0 0 2px #5361F4 !important;
+  box-shadow: inset 0 0 0 2px var(--jm-primary-1) !important;
 }
 :deep(.n-date-panel-date--selected .n-date-panel-date__date),
 :deep(.n-date-panel-date--selected .n-date-panel-date__trigger .n-date-panel-date__date) {
-  color: #5361F4 !important;
+  color: var(--jm-primary-1) !important; font-weight: 600 !important;
+}
+:deep(.n-date-panel-date--current .n-date-panel-date__trigger) { border-color: var(--jm-primary-1) !important; }
+:deep(.n-date-panel .n-button--primary-type) { background-color: var(--jm-primary-1) !important; border-color: var(--jm-primary-1) !important; border-radius: 8px !important; }
+:deep(.n-date-panel .n-button--primary-type:hover) { background-color: var(--jm-primary-2) !important; border-color: var(--jm-primary-2) !important; }
+
+:deep(.n-modal .n-button--primary-type) { background-color: var(--jm-primary-1) !important; border-color: var(--jm-primary-1) !important; border-radius: 10px !important; }
+:deep(.n-modal .n-button--primary-type:hover) { background-color: var(--jm-primary-2) !important; border-color: var(--jm-primary-2) !important; }
+
+/* Modal glass override */
+:deep(.n-card) {
+  background: var(--jm-glass-bg) !important;
+  backdrop-filter: blur(25px) !important; -webkit-backdrop-filter: blur(25px) !important;
+  border: 1px solid var(--jm-glass-border) !important;
+  border-radius: 16px !important;
+  box-shadow: var(--jm-shadow-elevation-3) !important;
+}
+:deep(.n-card-header) { border-bottom-color: var(--jm-glass-border) !important; }
+:deep(.n-card__footer) { border-top-color: var(--jm-glass-border) !important; }
+
+/* Input focus — subtle gray ring, no neon */
+:deep(.n-input) { border-radius: 10px !important; transition: box-shadow 0.3s !important; }
+:deep(.n-input--focus) { box-shadow: 0 0 0 2px rgba(var(--jm-accent-3-rgb, 150,150,150), 0.2) !important; }
+
+:deep(.n-radio-group) {
+  /* 容器：物理凹槽，无缝滑块 */
+  background: rgba(var(--jm-accent-1-rgb), 0.12) !important;
+  border-radius: 12px !important;
+  padding: 3px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 0 !important;
+  border: 1px solid rgba(0, 0, 0, 0.03) !important;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.05) !important;
+  width: fit-content !important;
+}
+
+:deep(.n-radio-button) {
+  --n-button-border-color: transparent !important;
+  --n-button-box-shadow: none !important;
+  background: transparent !important;
+  border: none !important;
+  border-radius: 9px !important;
+  margin: 0 !important;
+  height: 32px !important;
+  line-height: 32px !important;
+  padding: 0 20px !important;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  color: var(--jm-accent-4) !important;
+}
+
+:deep(.n-radio-button:hover) {
+  color: var(--jm-accent-7) !important;
+  background: rgba(255, 255, 255, 0.08) !important;
+}
+
+:deep(.n-radio-button--checked) {
+  /* 选中态：实色悬浮滑块，双层阴影 + 微弹 */
+  background: var(--jm-glass-bg-hover) !important;
+  color: var(--jm-primary-1) !important;
   font-weight: 600 !important;
-}
-/* 日期选择器 — 今日边框 */
-:deep(.n-date-panel-date--current .n-date-panel-date__trigger) {
-  border-color: #5361F4 !important;
-}
-/* 日期选择器 — 「此刻」「确认」按钮 */
-:deep(.n-date-panel .n-button--primary-type) {
-  background-color: #5361F4 !important;
-  border-color: #5361F4 !important;
-  border-radius: 8px !important;
-}
-:deep(.n-date-panel .n-button--primary-type:hover) {
-  background-color: #6a78f5 !important;
-  border-color: #6a78f5 !important;
+  box-shadow:
+    0 3px 8px rgba(0, 0, 0, 0.12),
+    0 1px 2px rgba(0, 0, 0, 0.04) !important;
+  transform: translateY(-0.5px);
 }
 
-/* 弹窗 footer — 「创建任务」「保存修改」主色按钮 */
-:deep(.n-modal .n-button--primary-type) {
-  background-color: #5361F4 !important;
-  border-color: #5361F4 !important;
-  border-radius: 8px !important;
+/* 彻底杀掉 Naive UI 的所有分割线和边框伪元素 */
+:deep(.n-radio-button .n-radio-button__state-border),
+:deep(.n-radio-button::before),
+:deep(.n-radio-button::after) {
+  display: none !important;
+  opacity: 0 !important;
+  width: 0 !important;
 }
-:deep(.n-modal .n-button--primary-type:hover) {
-  background-color: #6a78f5 !important;
-  border-color: #6a78f5 !important;
+:deep(.n-radio-group .n-radio-button__border) {
+  box-shadow: none !important;
+  border: none !important;
+  opacity: 0 !important;
 }
 
-/* add-btn 统一圆角 */
-.add-btn { border-radius: 8px !important; background: #5361F4 !important; }
-.add-btn:hover { background: #6a78f5 !important; filter: none !important; }
+/* Advanced body — subtle nesting */
+.advanced-body {
+  background: rgba(var(--jm-accent-1-rgb), 0.05) !important;
+  margin: 0 -1px -1px !important;
+  border-radius: 0 0 11px 11px !important;
+}
+
+/* add-btn */
+.add-btn { border-radius: 10px !important; }
+.add-btn:hover { filter: none !important; }
 </style>
 
 

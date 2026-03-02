@@ -56,3 +56,16 @@ func (s *Server) ToggleChannel(req *gsock.Request) (any, error) {
 	}
 	return result, nil
 }
+
+// ApprovePairing 批准 Telegram 配对码
+func (s *Server) ApprovePairing(req *gsock.Request) (any, error) {
+	var args map[string]any
+	if err := rpcutil.ParseParams(req, &args); err != nil {
+		return nil, err
+	}
+	result, err := service.NewChannelService().ApprovePairing(args)
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
+}

@@ -4,6 +4,9 @@ import App from './App.vue'
 import router from './router'
 import './theme/theme.css'
 import './style.css'
+import '@fontsource/jetbrains-mono/400.css'
+import '@fontsource/jetbrains-mono/500.css'
+import '@fontsource/jetbrains-mono/600.css'
 
 // 创建离散化 API，用于非组件场景
 const { message, dialog } = createDiscreteApi(['message', 'dialog'])

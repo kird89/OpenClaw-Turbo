@@ -1,107 +1,143 @@
 <template>
   <div class="deploy-progress-page">
+    <div class="bg-grid"></div>
+
     <div class="progress-container fade-in-up">
-      <!-- 标题 -->
-      <div class="progress-header">
-        <div class="header-icon" :class="{ 'icon-done': deployDone }">
-          <svg v-if="!deployDone" viewBox="0 0 24 24" width="28" height="28" class="spin-icon">
-            <circle cx="12" cy="12" r="10" stroke="var(--jm-primary-1)" stroke-width="2" fill="none" opacity="0.2"/>
-            <path d="M12 2a10 10 0 019.95 9" stroke="var(--jm-primary-1)" stroke-width="2" fill="none" stroke-linecap="round"/>
+      <!-- 能量环 -->
+      <div class="energy-ring-section">
+        <div class="energy-ring" :class="{ done: deployDone, failed: deployFailed }">
+          <svg class="ring-svg" viewBox="0 0 120 120">
+            <!-- 底环 -->
+            <circle cx="60" cy="60" r="52" fill="none" stroke-width="5"
+              stroke="rgba(var(--jm-accent-2-rgb), 0.2)" stroke-linecap="round"/>
+            <!-- 进度环 -->
+            <circle cx="60" cy="60" r="52" fill="none" stroke-width="5"
+              :stroke="deployFailed ? 'var(--jm-error-color)' : deployDone ? '#22c55e' : 'var(--jm-primary-1)'"
+              stroke-linecap="round"
+              :stroke-dasharray="ringCirc"
+              :stroke-dashoffset="ringOffset"
+              class="ring-progress"
+              transform="rotate(-90 60 60)"/>
+            <!-- 流光 -->
+            <circle v-if="!deployDone && !deployFailed" cx="60" cy="60" r="52" fill="none"
+              stroke-width="6" stroke="url(#glow)" stroke-linecap="round"
+              stroke-dasharray="20 307" class="ring-glow"
+              transform="rotate(-90 60 60)"/>
+            <defs>
+              <linearGradient id="glow">
+                <stop offset="0%" stop-color="var(--jm-primary-1)" stop-opacity="0"/>
+                <stop offset="50%" stop-color="var(--jm-primary-1)" stop-opacity="0.8"/>
+                <stop offset="100%" stop-color="var(--jm-primary-1)" stop-opacity="0"/>
+              </linearGradient>
+            </defs>
           </svg>
-          <svg v-else viewBox="0 0 24 24" width="28" height="28">
-            <circle cx="12" cy="12" r="10" fill="var(--jm-success-color)" opacity="0.15"/>
-            <path d="M8 12l3 3 5-5" stroke="var(--jm-success-color)" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
+          <!-- 中心内容 -->
+          <div class="ring-center">
+            <template v-if="deployDone">
+              <svg viewBox="0 0 24 24" width="32" height="32" class="done-check">
+                <circle cx="12" cy="12" r="11" fill="rgba(34,197,94,0.1)"/>
+                <path d="M8 12l3 3 5-5" stroke="#22c55e" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </template>
+            <template v-else-if="deployFailed">
+              <svg viewBox="0 0 24 24" width="32" height="32">
+                <circle cx="12" cy="12" r="11" fill="rgba(239,68,68,0.1)"/>
+                <path d="M15 9l-6 6M9 9l6 6" stroke="#ef4444" stroke-width="2" fill="none" stroke-linecap="round"/>
+              </svg>
+            </template>
+            <template v-else>
+              <span class="ring-percent font-mono">{{ progressPercent }}%</span>
+              <span class="ring-label">{{ currentPhase }}</span>
+            </template>
+          </div>
+          <!-- 成功波纹 -->
+          <div v-if="deployDone" class="ripple"></div>
         </div>
-        <div class="header-text">
-          <h2 class="progress-title">{{ deployDone ? '部署完成' : '正在部署' }}</h2>
-          <p class="progress-desc" v-if="!deployDone">{{ isLocal ? '正在编译安装 OpenClaw，请稍候...' : '正在拉取镜像并启动容器，请稍候...' }}</p>
-          <p class="progress-desc" v-else>OpenClaw 已成功部署并启动</p>
-        </div>
+
+        <!-- 标题 -->
+        <h2 class="progress-title">{{ deployDone ? '部署完成' : deployFailed ? '部署失败' : '正在部署' }}</h2>
+        <p class="progress-desc">
+          <template v-if="deployDone">OpenClaw 已成功部署并启动</template>
+          <template v-else-if="deployFailed">部署过程中出现错误</template>
+          <template v-else>{{ isLocal ? '正在编译安装 OpenClaw...' : '正在拉取镜像并启动容器...' }}</template>
+        </p>
       </div>
 
-      <!-- 进度条 -->
-      <div class="progress-bar-section">
-        <n-progress
-          type="line"
-          :percentage="progressPercent"
-          :status="deployDone ? 'success' : 'default'"
-          :show-indicator="true"
-          :height="6"
-          :border-radius="3"
-        />
-      </div>
-
-      <!-- 日志面板 -->
+      <!-- 终端日志 -->
       <div class="log-panel">
         <div class="log-header">
           <div class="log-title-row">
-            <svg viewBox="0 0 24 24" width="14" height="14" fill="none">
-              <rect x="3" y="3" width="18" height="18" rx="2" stroke="var(--jm-accent-4)" stroke-width="1.5"/>
-              <path d="M8 8l4 4-4 4M14 16h4" stroke="var(--jm-accent-4)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            <svg viewBox="0 0 24 24" width="12" height="12" fill="none">
+              <rect x="3" y="3" width="18" height="18" rx="2" stroke="currentColor" stroke-width="1.5"/>
+              <path d="M8 8l4 4-4 4M14 16h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
             <span>部署日志</span>
           </div>
-          <div v-if="!deployDone" class="log-live-indicator">
+          <div v-if="!deployDone && !deployFailed" class="log-live">
             <span class="live-dot"></span>
             LIVE
           </div>
         </div>
         <div class="log-content" ref="logContainer">
           <div v-for="(line, i) in logLines" :key="i" class="log-line">
-            <span class="log-time">{{ line.time }}</span>
+            <span class="log-num font-mono">{{ String(i + 1).padStart(3, ' ') }}</span>
+            <span class="log-time font-mono">{{ line.time }}</span>
             <span class="log-text" :class="line.type">{{ line.text }}</span>
           </div>
-          <div v-if="!deployDone" class="log-cursor">▌</div>
+          <div v-if="!deployDone && !deployFailed" class="log-cursor">▌</div>
         </div>
       </div>
 
       <!-- 完成操作 -->
-      <div v-if="deployDone" class="done-actions fade-in-up">
-        <n-button type="primary" size="large" @click="goToDashboard" class="dashboard-btn">
-          <template #icon>
-            <svg viewBox="0 0 24 24" width="16" height="16" fill="none">
-              <rect x="3" y="3" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.5"/>
-              <rect x="14" y="3" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.5"/>
-              <rect x="3" y="14" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.5"/>
-              <rect x="14" y="14" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.5"/>
-            </svg>
-          </template>
-          进入仪表板
-        </n-button>
+      <div v-if="deployDone" class="done-section spring-in">
+        <button class="cta-btn" @click="goToDashboard">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none">
+            <rect x="3" y="3" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.5"/>
+            <rect x="14" y="3" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.5"/>
+            <rect x="3" y="14" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.5"/>
+            <rect x="14" y="14" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.5"/>
+          </svg>
+          <span class="cta-text">进入仪表板</span>
+        </button>
       </div>
 
       <!-- 失败操作 -->
-      <div v-if="deployFailed" class="done-actions fade-in-up">
-        <div class="error-hint">
-          <svg viewBox="0 0 24 24" width="16" height="16" fill="none">
-            <circle cx="12" cy="12" r="10" stroke="var(--jm-error-color)" stroke-width="1.5" opacity="0.5"/>
-            <path d="M12 8v4M12 16h.01" stroke="var(--jm-error-color)" stroke-width="1.5" stroke-linecap="round"/>
+      <div v-if="deployFailed" class="fail-section spring-in">
+        <div class="error-card">
+          <div class="error-title">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none">
+              <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="1.5" opacity="0.5"/>
+              <path d="M12 8v4M12 16h.01" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+            排查步骤
+          </div>
+          <div class="error-steps" v-if="isLocal">
+            <p>1. 确保 Node.js 和 pnpm 已正确安装</p>
+            <p>2. 确保网络连接正常（需要访问 Gitee 仓库）</p>
+            <p>3. 查看上方日志获取详细错误信息</p>
+            <p class="error-contact">如仍无法解决，请联系 <b>GMSSH 客服</b>，秒回复帮您免费配置 ✨</p>
+          </div>
+          <div class="error-steps" v-else>
+            <p>1. 确保 Docker 正常运行</p>
+            <p>2. 确保网络连接正常</p>
+            <p>3. 确认 Docker 镜像加速已正确配置</p>
+            <p class="error-contact">如仍无法解决，请联系 <b>GMSSH 客服</b>，秒回复帮您免费配置 ✨</p>
+          </div>
+        </div>
+        <button class="back-capsule" @click="$router.push('/console?step=setup')">
+          <svg class="back-arrow" viewBox="0 0 24 24" width="14" height="14" fill="none">
+            <path d="M11 19l-7-7 7-7M4 12h16" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
-          <span>部署过程中出现错误，请按以下步骤排查：</span>
-        </div>
-        <div class="error-checklist" v-if="isLocal">
-          <p>1. 确保 Node.js 和 pnpm 已正确安装</p>
-          <p>2. 确保网络连接正常（需要访问 Gitee 仓库）</p>
-          <p>3. 查看上方日志获取详细错误信息</p>
-          <p class="error-contact">如仍无法解决，请联系 <b>GMSSH 客服</b>，秒回复帮您免费配置 ✨</p>
-        </div>
-        <div class="error-checklist" v-else>
-          <p>1. 确保 Docker 正常运行</p>
-          <p>2. 确保网络连接正常</p>
-          <p>3. 进入 <b>Docker 管理器 → 设置 → 镜像加速</b>，确认已正确配置</p>
-          <p class="error-contact">如仍无法解决，请联系 <b>GMSSH 客服</b>，秒回复帮您免费配置 ✨</p>
-        </div>
-        <n-button @click="$router.push('/console?step=setup')" quaternary type="primary">返回配置</n-button>
+          返回配置
+        </button>
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, inject, onMounted, onUnmounted, nextTick } from 'vue'
+import { ref, computed, inject, onMounted, onUnmounted, nextTick } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { NButton, NProgress } from 'naive-ui'
 import { getDeployLogs } from '@/api/deploy'
 
 const router = useRouter()
@@ -113,6 +149,18 @@ const deployFailed = ref(false)
 const setDeployed = inject('setDeployed', () => {})
 const progressPercent = ref(0)
 const isLocal = ref(route.query.mode === 'local')
+
+const ringCirc = 2 * Math.PI * 52 // ≈ 326.73
+const ringOffset = computed(() => ringCirc - (ringCirc * progressPercent.value / 100))
+
+const currentPhase = computed(() => {
+  const p = progressPercent.value
+  if (p < 15) return '初始化...'
+  if (p < 40) return isLocal.value ? '编译中...' : '拉取镜像...'
+  if (p < 70) return '安装依赖...'
+  if (p < 90) return '启动服务...'
+  return '即将完成...'
+})
 
 let pollTimer = null
 
@@ -140,7 +188,6 @@ async function pollLogs() {
       })
     }
 
-    // 模拟进度递增
     if (!deployDone.value && progressPercent.value < 90) {
       progressPercent.value = Math.min(90, Math.round(progressPercent.value + Math.random() * 15 + 5))
     }
@@ -174,208 +221,273 @@ onMounted(() => {
   progressPercent.value = 5
 
   pollTimer = setInterval(pollLogs, 2000)
-  // 首次立即拉取
   setTimeout(pollLogs, 800)
 })
 
 onUnmounted(() => {
-  if (pollTimer) {
-    clearInterval(pollTimer)
-  }
+  if (pollTimer) clearInterval(pollTimer)
 })
 </script>
 
 <style scoped>
+/* ===== 页面 ===== */
 .deploy-progress-page {
-  width: 100%;
-  height: 100%;
-  overflow-y: auto;
-  padding: 24px;
+  position: relative;
+  width: 100%; height: 100%;
+  overflow-y: auto; padding: 24px;
+}
+
+.bg-grid {
+  position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  background-image:
+    linear-gradient(rgba(var(--jm-accent-2-rgb), 0.15) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(var(--jm-accent-2-rgb), 0.15) 1px, transparent 1px);
+  background-size: 40px 40px;
+  mask-image: radial-gradient(ellipse 60% 50% at 50% 50%, black 40%, transparent 100%);
+  -webkit-mask-image: radial-gradient(ellipse 60% 50% at 50% 50%, black 40%, transparent 100%);
 }
 
 .progress-container {
-  max-width: 640px;
-  margin: 0 auto;
+  position: relative; z-index: 1;
+  max-width: 540px; margin: 0 auto;
+  background: var(--jm-glass-bg);
+  backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
+  border: 1px solid var(--jm-glass-border);
+  border-radius: 20px;
+  padding: 32px 28px 24px;
+  box-shadow:
+    var(--jm-glass-inner-glow),
+    0 8px 40px rgba(0, 0, 0, 0.12),
+    0 0 0 1px rgba(255, 255, 255, 0.04);
 }
 
-.progress-header {
-  display: flex;
-  align-items: center;
-  gap: 16px;
+/* ===== 能量环 ===== */
+.energy-ring-section {
+  display: flex; flex-direction: column; align-items: center;
   margin-bottom: 24px;
 }
 
-.header-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 52px;
-  height: 52px;
-  border-radius: 14px;
-  background: rgba(var(--jm-primary-1-rgb), 0.08);
-  flex-shrink: 0;
+.energy-ring {
+  position: relative;
+  width: 140px; height: 140px;
+  display: flex; align-items: center; justify-content: center;
+  margin-bottom: 16px;
 }
 
-.header-icon.icon-done {
-  background: rgba(59, 173, 91, 0.08);
+.ring-svg { width: 100%; height: 100%; }
+
+.ring-progress {
+  transition: stroke-dashoffset 0.8s cubic-bezier(0.4, 0, 0.2, 1), stroke 0.4s;
+  filter: drop-shadow(0 0 6px rgba(var(--jm-primary-1-rgb), 0.3));
 }
 
-.spin-icon {
-  animation: spin 1s linear infinite;
+.energy-ring.done .ring-progress {
+  filter: drop-shadow(0 0 8px rgba(34, 197, 94, 0.35));
+}
+.energy-ring.failed .ring-progress {
+  filter: drop-shadow(0 0 8px rgba(239, 68, 68, 0.35));
 }
 
-@keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+.ring-glow {
+  animation: glowSpin 2s linear infinite;
+  filter: blur(2px);
+}
+@keyframes glowSpin {
+  from { transform: rotate(-90deg); transform-origin: 60px 60px; }
+  to { transform: rotate(270deg); transform-origin: 60px 60px; }
+}
+
+.ring-center {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+}
+
+.ring-percent {
+  font-size: 28px; font-weight: 700; letter-spacing: -0.02em;
+  color: var(--jm-accent-7);
+  line-height: 1;
+}
+.ring-label {
+  font-size: 11px; color: var(--jm-accent-4);
+  margin-top: 4px;
+}
+
+.done-check { animation: checkPop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+@keyframes checkPop {
+  from { transform: scale(0); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+/* 成功波纹 */
+.ripple {
+  position: absolute; inset: -10px;
+  border-radius: 50%;
+  border: 2px solid rgba(34, 197, 94, 0.3);
+  animation: rippleOut 1s ease-out forwards;
+}
+@keyframes rippleOut {
+  0% { transform: scale(0.8); opacity: 1; }
+  100% { transform: scale(1.5); opacity: 0; }
 }
 
 .progress-title {
-  font-size: 18px;
-  font-weight: 600;
-  color: var(--jm-accent-7);
-  margin-bottom: 4px;
+  font-size: 17px; font-weight: 600; color: var(--jm-accent-7);
+  margin: 0 0 4px; text-align: center;
 }
-
 .progress-desc {
-  font-size: 13px;
-  color: var(--jm-accent-5);
+  font-size: 12px; color: var(--jm-accent-4);
+  margin: 0; text-align: center;
 }
 
-.progress-bar-section {
-  margin-bottom: 20px;
-}
-
-/* 日志面板 */
+/* ===== 终端日志 ===== */
 .log-panel {
-  background: rgba(var(--jm-accent-1-rgb), 0.6);
-  border: 1px solid var(--jm-accent-2);
-  border-radius: 10px;
-  overflow: hidden;
+  background: rgba(var(--jm-accent-1-rgb), 0.2);
+  border: 1px solid rgba(var(--jm-accent-2-rgb), 0.12);
+  border-top: 1px solid rgba(255, 255, 255, 0.04);
+  border-radius: 14px; overflow: hidden;
 }
 
 .log-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 10px 14px;
-  border-bottom: 1px solid var(--jm-accent-2);
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 8px 14px;
+  border-bottom: 1px solid rgba(var(--jm-accent-2-rgb), 0.1);
 }
-
 .log-title-row {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 12px;
-  color: var(--jm-accent-5);
-  font-weight: 500;
+  display: flex; align-items: center; gap: 6px;
+  font-size: 10px; font-weight: 600; letter-spacing: 0.05em;
+  text-transform: uppercase; color: var(--jm-accent-4);
 }
-
-.log-live-indicator {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  font-size: 10px;
-  font-weight: 600;
-  color: var(--jm-success-color);
-  letter-spacing: 1px;
+.log-live {
+  display: flex; align-items: center; gap: 5px;
+  font-size: 9px; font-weight: 700; letter-spacing: 1px;
+  color: #22c55e;
 }
-
 .live-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--jm-success-color);
-  animation: pulse 1s ease-in-out infinite;
+  width: 6px; height: 6px; border-radius: 50%;
+  background: #22c55e;
+  box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.15), 0 0 6px rgba(34, 197, 94, 0.3);
+  animation: breathe 1.5s ease-in-out infinite;
+}
+@keyframes breathe {
+  0%, 100% { opacity: 1; box-shadow: 0 0 0 2px rgba(34,197,94,0.15), 0 0 6px rgba(34,197,94,0.3); }
+  50% { opacity: 0.5; box-shadow: 0 0 0 4px rgba(34,197,94,0.08), 0 0 12px rgba(34,197,94,0.15); }
 }
 
 .log-content {
-  height: 320px;
-  overflow-y: auto;
-  padding: 12px 14px;
-  font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
-  font-size: 12px;
-  line-height: 1.7;
+  height: 240px; overflow-y: auto;
+  padding: 10px 14px;
+  font-family: var(--jm-font-mono); font-size: 11px; line-height: 1.7;
+}
+.log-content::-webkit-scrollbar { width: 4px; }
+.log-content::-webkit-scrollbar-thumb { background: var(--jm-accent-3); border-radius: 2px; }
+
+.log-line { display: flex; gap: 0; }
+.log-num {
+  color: var(--jm-accent-3); flex-shrink: 0;
+  width: 30px; text-align: right;
+  padding-right: 10px; user-select: none;
+  border-right: 1px solid rgba(var(--jm-accent-2-rgb), 0.1);
+  margin-right: 10px;
+}
+.log-time { color: var(--jm-accent-3); flex-shrink: 0; margin-right: 8px; }
+.log-text { color: var(--jm-accent-5); word-break: break-all; }
+.log-text.error { color: #ef4444; }
+.log-text.success { color: #22c55e; }
+
+.log-cursor { color: var(--jm-primary-1); animation: blink 0.8s step-end infinite; margin-left: 40px; }
+@keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+
+/* ===== 完成区 ===== */
+.done-section {
+  display: flex; flex-direction: column; align-items: center;
+  margin-top: 20px;
 }
 
-.log-line {
-  display: flex;
-  gap: 10px;
+.cta-btn {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  padding: 10px 32px; height: 42px;
+  font-size: 14px; font-weight: 500; color: #fff;
+  background: linear-gradient(135deg, var(--jm-primary-1), var(--jm-primary-2));
+  border: none; border-radius: 12px; cursor: pointer;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.15),
+    0 4px 16px rgba(var(--jm-primary-1-rgb), 0.25),
+    0 1px 3px rgba(0,0,0,0.1);
+  transition: all 0.2s;
 }
-
-.log-time {
-  color: var(--jm-accent-4);
-  flex-shrink: 0;
-  font-size: 11px;
-}
-
-.log-text {
-  color: var(--jm-accent-6);
-  word-break: break-all;
-}
-
-.log-text.error {
-  color: var(--jm-error-color);
-}
-
-.log-text.success {
-  color: var(--jm-success-color);
-}
-
-.log-cursor {
-  color: var(--jm-primary-1);
-  animation: pulse 0.8s ease-in-out infinite;
-}
-
-/* 完成操作 */
-.done-actions {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 12px;
-  margin-top: 24px;
-}
-
-.dashboard-btn {
-  min-width: 180px;
-  height: 42px;
-  font-size: 14px;
-  font-weight: 500;
-  border-radius: 10px;
-}
-
-.dashboard-btn:hover {
+.cta-btn:hover {
   transform: translateY(-1px);
-  box-shadow: 0 4px 16px rgba(var(--jm-primary-1-rgb), 0.3);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.15),
+    0 6px 24px rgba(var(--jm-primary-1-rgb), 0.35),
+    0 2px 6px rgba(0,0,0,0.12);
+}
+.cta-btn:active {
+  transform: translateY(1px);
+  box-shadow:
+    inset 0 2px 4px rgba(0,0,0,0.15),
+    0 1px 4px rgba(var(--jm-primary-1-rgb), 0.15);
 }
 
-.error-hint {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 12px;
-  color: var(--jm-error-color);
+/* ===== 失败区 ===== */
+.fail-section {
+  display: flex; flex-direction: column; align-items: center;
+  gap: 14px; margin-top: 20px;
 }
 
-.error-checklist {
-  background: rgba(var(--jm-accent-1-rgb), 0.5);
-  border: 1px solid var(--jm-accent-2);
-  border-radius: 8px;
-  padding: 12px 16px;
-  text-align: left;
+.error-card {
   width: 100%;
-  max-width: 400px;
+  background: rgba(239, 68, 68, 0.03);
+  border: 1px solid rgba(239, 68, 68, 0.1);
+  border-radius: 12px; padding: 14px 16px;
 }
-.error-checklist p {
-  margin: 6px 0;
-  font-size: 12px;
-  color: var(--jm-accent-5);
+.error-title {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 12px; font-weight: 600; color: #ef4444;
+  margin-bottom: 8px;
+}
+.error-steps p {
+  margin: 5px 0; font-size: 11px; color: var(--jm-accent-5);
   line-height: 1.6;
 }
-.error-checklist b { color: var(--jm-accent-7); }
+.error-steps b { color: var(--jm-accent-7); }
 .error-contact {
-  margin-top: 10px !important;
-  padding-top: 8px;
-  border-top: 1px solid var(--jm-accent-2);
+  margin-top: 10px !important; padding-top: 8px;
+  border-top: 1px solid rgba(var(--jm-accent-2-rgb), 0.1);
   color: var(--jm-primary-2) !important;
+}
+
+/* 返回胶囊 */
+.back-capsule {
+  display: flex; align-items: center; gap: 6px;
+  padding: 6px 14px 6px 10px; border-radius: 20px;
+  border: 1px solid rgba(var(--jm-accent-2-rgb), 0.2);
+  background: transparent;
+  color: var(--jm-accent-4); font-size: 12px;
+  cursor: pointer; transition: all 0.2s;
+}
+.back-capsule:hover {
+  color: var(--jm-primary-2);
+  border-color: rgba(var(--jm-primary-1-rgb), 0.2);
+  background: rgba(var(--jm-primary-1-rgb), 0.03);
+}
+.back-arrow { transition: transform 0.2s; }
+.back-capsule:hover .back-arrow { animation: arrowBounce 0.4s ease; }
+@keyframes arrowBounce {
+  0%, 100% { transform: translateX(0); }
+  50% { transform: translateX(-4px); }
+}
+
+/* ===== 动画 ===== */
+.spring-in { animation: springUp 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+@keyframes springUp {
+  from { opacity: 0; transform: translateY(20px) scale(0.95); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+.fade-in-up { animation: fadeInUp 0.35s ease-out both; }
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 </style>

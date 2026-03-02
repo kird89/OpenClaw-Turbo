@@ -2,13 +2,12 @@ package dto
 
 // CheckEnvResp 环境检测响应
 type CheckEnvResp struct {
-	DockerReady        bool `json:"dockerReady"`
-	DockerComposeReady bool `json:"dockerComposeReady"`
-	PluginPathExists   bool `json:"pluginPathExists"`
-	NodeReady          bool `json:"nodeReady"`
-	PnpmReady          bool `json:"pnpmReady"`
+	DockerReady        bool   `json:"dockerReady"`
+	DockerComposeReady bool   `json:"dockerComposeReady"`
+	NodeReady          bool   `json:"nodeReady"`
+	PnpmReady          bool   `json:"pnpmReady"`
 	NodeVersion        string `json:"nodeVersion"`
-	AllReady           bool `json:"allReady"`
+	AllReady           bool   `json:"allReady"`
 }
 
 // GenerateTokenResp 生成Token响应
@@ -49,6 +48,7 @@ type DeployLogResp struct {
 
 // ClawStatusResp OpenClaw状态响应
 type ClawStatusResp struct {
+	Installed     bool   `json:"installed"`
 	Running       bool   `json:"running"`
 	ContainerName string `json:"containerName"`
 	Status        string `json:"status"`
@@ -134,7 +134,8 @@ type AgentFilesResp struct {
 
 // AgentFileReq 读取单个Agent文件请求
 type AgentFileReq struct {
-	Name string `json:"name"` // IDENTITY / USER / SOUL
+	AgentID string `json:"agentId"` // Agent ID
+	Name    string `json:"name"`    // IDENTITY / USER / SOUL 等
 }
 
 // AgentFileResp 单个文件响应
@@ -145,7 +146,8 @@ type AgentFileResp struct {
 
 // AgentSaveReq 保存Agent文件请求
 type AgentSaveReq struct {
-	Name    string `json:"name"`    // IDENTITY / USER / SOUL
+	AgentID string `json:"agentId"` // Agent ID (空 or "main" = 主工作区)
+	Name    string `json:"name"`    // IDENTITY / USER / SOUL 等
 	Content string `json:"content"` // markdown 内容
 }
 
@@ -167,4 +169,68 @@ type AgentTemplatesResp struct {
 // ApplyTemplateReq 应用模板请求
 type ApplyTemplateReq struct {
 	Key string `json:"key"` // 模板 key
+}
+
+// ========== 多 Agent 管理 ==========
+
+// AgentInfo 单个 Agent 的完整信息
+type AgentInfo struct {
+	ID          string `json:"id"`
+	Name        string `json:"name"`
+	Role        string `json:"role"`        // main | specialist
+	Description string `json:"description"`
+	Status      string `json:"status"`      // idle | thinking | acting | error
+	Avatar      string `json:"avatar"`
+	Model       string `json:"model"`
+	ParentID    string `json:"parentId"`
+	CreatedAt   string `json:"createdAt"`
+	UpdatedAt   string `json:"updatedAt"`
+}
+
+// ListAgentsResp Agent 列表响应
+type ListAgentsResp struct {
+	Agents []AgentInfo `json:"agents"`
+}
+
+// CreateAgentReq 创建 Agent 请求
+type CreateAgentReq struct {
+	Name        string `json:"name"`
+	Role        string `json:"role"`
+	Description string `json:"description"`
+	Avatar      string `json:"avatar"`
+	Model       string `json:"model"`
+	ParentID    string `json:"parentId"`
+}
+
+// UpdateAgentReq 更新 Agent 请求
+type UpdateAgentReq struct {
+	ID          string `json:"id"`
+	Name        string `json:"name"`
+	Role        string `json:"role"`
+	Description string `json:"description"`
+	Avatar      string `json:"avatar"`
+	Model       string `json:"model"`
+	ParentID    string `json:"parentId"`
+}
+
+// DeleteAgentReq 删除 Agent 请求
+type DeleteAgentReq struct {
+	ID string `json:"id"`
+}
+
+// GetAgentDetailReq 获取 Agent 详情请求
+type GetAgentDetailReq struct {
+	ID string `json:"id"`
+}
+
+// AgentDetailResp Agent 详情响应（含人格文件）
+type AgentDetailResp struct {
+	Agent AgentInfo       `json:"agent"`
+	Files []AgentFileItem `json:"files"`
+}
+
+// ClawWsInfoResp WS 代理连接信息
+type ClawWsInfoResp struct {
+	Port  int    `json:"port"`  // WS 代理端口
+	Token string `json:"token"` // WS 代理认证令牌
 }

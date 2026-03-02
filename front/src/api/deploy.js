@@ -36,6 +36,13 @@ export function getClawStatus() {
 }
 
 /**
+ * 检查 OpenClaw 是否已安装（不依赖网关运行状态）
+ */
+export function isClawInstalled() {
+    return gm.request('isClawInstalled')
+}
+
+/**
  * 获取 OpenClaw 配置信息
  */
 export function getClawConfig() {
@@ -99,13 +106,20 @@ export function installNodeEnv() {
 }
 
 /**
+ * 获取 OpenClaw 近期日志
+ */
+export function getRecentLogs(count = 10, mode = '') {
+    return gm.request('getRecentLogs', { count, mode })
+}
+
+/**
  * 大模型提供商配置
  */
 export const MODEL_PROVIDERS = [
     {
         provider: 'deepseek',
         displayName: 'DeepSeek (国产之光 - 强力推荐)',
-        apiMode: 'openai',  // OpenAI Chat Completions 协议
+        apiMode: 'openai-completions',  // OpenAI 兼容协议
         baseUrl: 'https://api.deepseek.com/v1',
         tokenUrl: 'https://platform.deepseek.com/api_keys',
         models: [
@@ -129,7 +143,7 @@ export const MODEL_PROVIDERS = [
     {
         provider: 'alibaba',
         displayName: '阿里云通义千问 (Qwen)',
-        apiMode: 'openai',
+        apiMode: 'openai-completions',
         baseUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
         tokenUrl: 'https://dashscope.console.aliyun.com/apiKey',
         models: [
@@ -165,7 +179,7 @@ export const MODEL_PROVIDERS = [
     {
         provider: 'kimi',
         displayName: 'Kimi (月之暗面)',
-        apiMode: 'openai',
+        apiMode: 'openai-completions',
         baseUrl: 'https://api.moonshot.cn/v1',
         tokenUrl: 'https://platform.moonshot.cn/console/api-keys',
         models: [
@@ -187,7 +201,7 @@ export const MODEL_PROVIDERS = [
     {
         provider: 'ollama',
         displayName: 'Ollama (本地/私有化部署)',
-        apiMode: 'openai',
+        apiMode: 'openai-completions',
         baseUrl: 'http://localhost:11434/v1',
         tokenUrl: '',
         models: [
@@ -199,7 +213,7 @@ export const MODEL_PROVIDERS = [
     {
         provider: 'custom',
         displayName: '自定义 OpenAI 兼容接口',
-        apiMode: 'openai',
+        apiMode: 'openai-completions',
         baseUrl: '',
         tokenUrl: '',
         models: [],

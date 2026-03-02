@@ -79,6 +79,11 @@ func (s *Server) GetClawStatus(req *gsock.Request) (any, error) {
 	return result, nil
 }
 
+// IsClawInstalled 检查 OpenClaw 是否已安装
+func (s *Server) IsClawInstalled(req *gsock.Request) (any, error) {
+	return service.NewDeployService().IsClawInstalled(), nil
+}
+
 // CheckPorts 检测端口是否被占用
 func (s *Server) CheckPorts(req *gsock.Request) (any, error) {
 	var args dto.CheckPortsReq
@@ -166,4 +171,36 @@ func (s *Server) UpdateMemoryConfig(req *gsock.Request) (any, error) {
 		return nil, err
 	}
 	return result, nil
+}
+
+// GetClawWsInfo 获取 OpenClaw WebSocket 连接信息
+func (s *Server) GetClawWsInfo(req *gsock.Request) (any, error) {
+	result, err := service.NewDeployService().GetClawWsInfo()
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
+// GetWsProxyStatus 获取 WS 代理状态
+func (s *Server) GetWsProxyStatus(req *gsock.Request) (any, error) {
+	return service.NewDeployService().GetWsProxyStatus()
+}
+
+// ToggleWsProxy 开启/关闭 WS 代理
+func (s *Server) ToggleWsProxy(req *gsock.Request) (any, error) {
+	var params map[string]any
+	if err := rpcutil.ParseParams(req, &params); err != nil {
+		return nil, err
+	}
+	return service.NewDeployService().ToggleWsProxy(params)
+}
+
+// GetRecentLogs 获取 OpenClaw 近期日志
+func (s *Server) GetRecentLogs(req *gsock.Request) (any, error) {
+	var params map[string]any
+	if err := rpcutil.ParseParams(req, &params); err != nil {
+		params = map[string]any{}
+	}
+	return service.NewDeployService().GetRecentLogs(params)
 }

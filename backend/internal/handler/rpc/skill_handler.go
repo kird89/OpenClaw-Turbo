@@ -80,8 +80,46 @@ func (s *Server) UninstallBuiltinSkill(req *gsock.Request) (any, error) {
 	return service.NewSkillService().UninstallBuiltinSkill(args)
 }
 
+// IsClawHubInstalled 检测 clawhub 是否已全局安装
+func (s *Server) IsClawHubInstalled(req *gsock.Request) (any, error) {
+	return service.NewSkillService().IsClawHubInstalled(), nil
+}
+
+// InstallClawHub 全局安装 clawhub
+func (s *Server) InstallClawHub(req *gsock.Request) (any, error) {
+	return service.NewSkillService().InstallClawHub()
+}
+
 // GetActiveSkillCount 获取启用的能力数总计
 func (s *Server) GetActiveSkillCount(req *gsock.Request) (any, error) {
 	rpcutil.SetLanguage(req)
 	return service.NewSkillService().GetActiveSkillCount()
+}
+
+// ListEnvVars 读取 .env 环境变量
+func (s *Server) ListEnvVars(req *gsock.Request) (any, error) {
+	return service.NewEnvVarService().ListEnvVars()
+}
+
+// SaveEnvVars 保存 .env 环境变量
+func (s *Server) SaveEnvVars(req *gsock.Request) (any, error) {
+	var args map[string]any
+	if err := rpcutil.ParseParams(req, &args); err != nil {
+		return nil, err
+	}
+	return service.NewEnvVarService().SaveEnvVars(args)
+}
+
+// GetModelsConfig 获取模型配置
+func (s *Server) GetModelsConfig(req *gsock.Request) (any, error) {
+	return service.NewModelService().GetModelsConfig()
+}
+
+// SaveModelsConfig 保存模型配置
+func (s *Server) SaveModelsConfig(req *gsock.Request) (any, error) {
+	var args map[string]any
+	if err := rpcutil.ParseParams(req, &args); err != nil {
+		return nil, err
+	}
+	return service.NewModelService().SaveModelsConfig(args)
 }

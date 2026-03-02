@@ -71,7 +71,7 @@
             <svg viewBox="0 0 24 24" width="16" height="16">
               <path d="M12 9v4M12 16v.5" stroke="var(--jm-warning-color)" stroke-width="2" stroke-linecap="round"/>
             </svg>
-            <span>请先通过应用中心安装 Docker 管理器</span>
+            <span>请先安装 Docker 和 Docker Compose</span>
           </div>
           <n-button quaternary type="primary" @click="retryCheck" size="small">重新检测</n-button>
         </template>
@@ -91,7 +91,6 @@ const checkComplete = ref(false)
 const allReady = ref(false)
 
 const checkItems = reactive([
-  { key: 'pluginPath', label: 'Docker 插件', desc: '检测 Docker 管理器是否已安装', status: 'pending' },
   { key: 'docker', label: 'Docker 引擎', desc: '检测 docker 命令是否可用', status: 'pending' },
   { key: 'dockerCompose', label: 'Docker Compose', desc: '检测 docker compose 是否可用', status: 'pending' },
 ])
@@ -103,11 +102,9 @@ async function runCheck() {
   try {
     await sleep(500)
     const r = await checkEnvironment()
-    checkItems[0].status = r.pluginPathExists ? 'success' : 'failed'
+    checkItems[0].status = r.dockerReady ? 'success' : 'failed'
     await sleep(250)
-    checkItems[1].status = r.dockerReady ? 'success' : 'failed'
-    await sleep(250)
-    checkItems[2].status = r.dockerComposeReady ? 'success' : 'failed'
+    checkItems[1].status = r.dockerComposeReady ? 'success' : 'failed'
     allReady.value = r.allReady
   } catch {
     checkItems.forEach(i => { i.status = 'failed' })

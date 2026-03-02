@@ -39,3 +39,19 @@ export function uninstallBuiltinSkill(params) {
 export function getActiveSkillCount(params) {
     return gm.request('getActiveSkillCount', params)
 }
+
+export function isClawHubInstalled() {
+    return gm.request('isClawHubInstalled')
+}
+
+export function installClawHub() {
+    return gm.request('installClawHub')
+}
+
+export function listEnvVars() {
+    return gm.request('listEnvVars')
+}
+
+export function saveEnvVars(params) {
+    return gm.request('saveEnvVars', params)
+}

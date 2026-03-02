@@ -8,8 +8,9 @@ body,
   overflow: hidden;
 }
 
-:root[data-theme='dark'],
-:root {
+/* ========== Dark Mode (default) ========== */
+:root,
+:root[data-theme='dark'] {
   /* 主色 */
   --jm-theme: rgba(0, 0, 0, 0.3);
   --jm-primary-1: #5772FF;
@@ -50,8 +51,107 @@ body,
   --jm-font-size-14: 14px;
   --jm-font-size-16: 16px;
   --jm-font-size-18: 18px;
+  --jm-font-mono: 'JetBrains Mono', 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
 
-  /* 背景 */
-  --jm-bg-color: #101010;
+  /* 背景 — 深蓝黑径向渐变 */
+  --jm-bg-color: #0a0a12;
+  --jm-bg-gradient: radial-gradient(ellipse at 20% 0%, rgba(30, 40, 80, 0.4) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 100%, rgba(40, 20, 70, 0.25) 0%, transparent 50%),
+    #0a0a12;
   --jm-system-hover-color: rgba(255, 255, 255, 0.08);
+
+  /* 玻璃拟态 */
+  --jm-glass-bg: rgba(255, 255, 255, 0.04);
+  --jm-glass-bg-hover: rgba(255, 255, 255, 0.07);
+  --jm-glass-border: rgba(255, 255, 255, 0.08);
+  --jm-glass-border-hover: rgba(255, 255, 255, 0.14);
+  --jm-glass-blur: 20px;
+  --jm-glass-inner-glow: inset 0 1px 0 0 rgba(255, 255, 255, 0.05);
+
+  /* 光效 */
+  --jm-glow-blue: rgba(87, 114, 255, 0.3);
+  --jm-glow-purple: rgba(162, 120, 255, 0.3);
+  --jm-glow-cyan: rgba(99, 180, 255, 0.3);
+  --jm-glow-green: rgba(80, 200, 120, 0.3);
+  --jm-glow-amber: rgba(255, 165, 79, 0.3);
+
+  /* 覆盖层 */
+  --jm-overlay-bg: rgba(0, 0, 0, 0.5);
+  --jm-shadow-color: rgba(0, 0, 0, 0.4);
+  --jm-shadow-elevation-1: 0 2px 8px rgba(0, 0, 0, 0.2);
+  --jm-shadow-elevation-2: 0 8px 32px rgba(0, 0, 0, 0.3);
+  --jm-shadow-elevation-3: 0 16px 48px rgba(0, 0, 0, 0.4);
+  --jm-dropdown-bg: rgba(30, 30, 50, 0.9);
+  --jm-card-bg: rgba(34, 34, 34, 0.4);
+  --jm-card-hover-shadow: rgba(0, 0, 0, 0.08);
+}
+
+/* ========== Light Mode ========== */
+:root[data-theme='light'] {
+  /* 主色 — 保持品牌色不变 */
+  --jm-theme: rgba(255, 255, 255, 0.85);
+  --jm-primary-1: #4a60e8;
+  --jm-primary-2: #5772FF;
+  --jm-primary-3: #8da0ff;
+  --jm-primary-4: #ffffff;
+
+  /* 辅助色 — 灰度反转 */
+  --jm-accent-1: #f0f1f5;
+  --jm-accent-2: #dfe1e8;
+  --jm-accent-3: #c5c8d2;
+  --jm-accent-4: #9498a6;
+  --jm-accent-5: #6b7082;
+  --jm-accent-6: #44485a;
+  --jm-accent-7: #1a1d2e;
+
+  /* RGB 变量 */
+  --jm-theme-rgb: 255, 255, 255;
+  --jm-primary-1-rgb: 74, 96, 232;
+  --jm-primary-2-rgb: 87, 114, 255;
+  --jm-primary-3-rgb: 141, 160, 255;
+  --jm-primary-4-rgb: 255, 255, 255;
+  --jm-accent-1-rgb: 240, 241, 245;
+  --jm-accent-2-rgb: 223, 225, 232;
+  --jm-accent-3-rgb: 197, 200, 210;
+  --jm-accent-4-rgb: 148, 152, 166;
+  --jm-accent-5-rgb: 107, 112, 130;
+  --jm-accent-6-rgb: 68, 72, 90;
+  --jm-accent-7-rgb: 26, 29, 46;
+
+  /* 状态色 */
+  --jm-error-color: #e03e2d;
+  --jm-success-color: #2d9b4e;
+  --jm-warning-color: #d9a520;
+
+  /* 背景 — 浅色微弱渐变 */
+  --jm-bg-color: #f2f3f8;
+  --jm-bg-gradient: radial-gradient(ellipse at 20% 0%, rgba(140, 160, 255, 0.06) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 100%, rgba(160, 120, 255, 0.04) 0%, transparent 50%),
+    #f2f3f8;
+  --jm-system-hover-color: rgba(0, 0, 0, 0.05);
+
+  /* 玻璃拟态 — 亮色 */
+  --jm-glass-bg: rgba(255, 255, 255, 0.55);
+  --jm-glass-bg-hover: rgba(255, 255, 255, 0.75);
+  --jm-glass-border: rgba(255, 255, 255, 0.6);
+  --jm-glass-border-hover: rgba(255, 255, 255, 0.85);
+  --jm-glass-blur: 20px;
+  --jm-glass-inner-glow: inset 0 1px 0 0 rgba(255, 255, 255, 0.8);
+
+  /* 光效 — 亮色更柔和 */
+  --jm-glow-blue: rgba(74, 96, 232, 0.15);
+  --jm-glow-purple: rgba(140, 100, 230, 0.15);
+  --jm-glow-cyan: rgba(60, 150, 230, 0.15);
+  --jm-glow-green: rgba(45, 155, 78, 0.15);
+  --jm-glow-amber: rgba(217, 165, 32, 0.15);
+
+  /* 覆盖层 */
+  --jm-overlay-bg: rgba(0, 0, 0, 0.3);
+  --jm-shadow-color: rgba(0, 0, 0, 0.08);
+  --jm-shadow-elevation-1: 0 2px 8px rgba(0, 0, 0, 0.06);
+  --jm-shadow-elevation-2: 0 8px 24px rgba(0, 0, 0, 0.1);
+  --jm-shadow-elevation-3: 0 16px 48px rgba(0, 0, 0, 0.12);
+  --jm-dropdown-bg: rgba(255, 255, 255, 0.92);
+  --jm-card-bg: rgba(255, 255, 255, 0.7);
+  --jm-card-hover-shadow: rgba(0, 0, 0, 0.06);
 }

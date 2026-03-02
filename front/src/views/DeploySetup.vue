@@ -1,6 +1,21 @@
 <template>
   <div class="deploy-setup-page">
+    <div class="bg-grid"></div>
     <div class="setup-container fade-in-up">
+      <!-- 标题 -->
+      <div class="setup-header">
+        <div class="setup-header-icon">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="none">
+            <path d="M12.22 2h-.44a2 2 0 00-2 2v.18a2 2 0 01-1 1.73l-.43.25a2 2 0 01-2 0l-.15-.08a2 2 0 00-2.73.73l-.22.38a2 2 0 00.73 2.73l.15.1a2 2 0 011 1.72v.51a2 2 0 01-1 1.74l-.15.09a2 2 0 00-.73 2.73l.22.38a2 2 0 002.73.73l.15-.08a2 2 0 012 0l.43.25a2 2 0 011 1.73V20a2 2 0 002 2h.44a2 2 0 002-2v-.18a2 2 0 011-1.73l.43-.25a2 2 0 012 0l.15.08a2 2 0 002.73-.73l.22-.39a2 2 0 00-.73-2.73l-.15-.08a2 2 0 01-1-1.74v-.5a2 2 0 011-1.74l.15-.09a2 2 0 00.73-2.73l-.22-.38a2 2 0 00-2.73-.73l-.15.08a2 2 0 01-2 0l-.43-.25a2 2 0 01-1-1.73V4a2 2 0 00-2-2z" stroke="var(--jm-primary-1)" stroke-width="1.5"/>
+            <circle cx="12" cy="12" r="3" stroke="var(--jm-primary-1)" stroke-width="1.5"/>
+          </svg>
+        </div>
+        <div>
+          <h2>配置部署</h2>
+          <p class="setup-desc">配置模型提供商、API 密钥和连接参数</p>
+        </div>
+      </div>
+
       <n-form :model="formData" label-placement="top" class="setup-form" size="medium">
         <!-- 模型提供商 -->
         <n-form-item label="模型提供商" path="provider">
@@ -179,15 +194,23 @@
 
       <!-- 底部操作 -->
       <div class="actions">
-        <n-button @click="$router.back()" quaternary size="small">返回</n-button>
-        <n-button
-          type="primary"
+        <button class="back-capsule" @click="$emit('back')">
+          <svg class="back-arrow" viewBox="0 0 24 24" width="14" height="14" fill="none">
+            <path d="M11 19l-7-7 7-7M4 12h16" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          返回
+        </button>
+        <button
+          class="cta-btn"
           @click="startDeploy"
-          :loading="deploying"
-          :disabled="!formData.model || !formData.apiKey || (isCustom && !formData.customBaseUrl)"
+          :disabled="deploying || !formData.model || !formData.apiKey || (isCustom && !formData.customBaseUrl)"
         >
-          开始部署
-        </n-button>
+          <n-spin v-if="deploying" :size="14" />
+          <span class="cta-text">{{ deploying ? '部署中...' : '开始部署' }}</span>
+          <svg v-if="!deploying" viewBox="0 0 24 24" width="16" height="16" fill="none">
+            <path d="M13 5l7 7-7 7M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
       </div>
     </div>
   </div>
@@ -196,13 +219,14 @@
 <script setup>
 import { ref, computed, watch, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { NButton, NForm, NFormItem, NInput, NInputNumber, NSelect } from 'naive-ui'
+import { NSpin, NForm, NFormItem, NInput, NInputNumber, NSelect, NButton } from 'naive-ui'
 import { generateToken, deploy, checkPorts, testApiConnection, MODEL_PROVIDERS } from '@/api/deploy'
 import gm from '@/utils/gmssh'
 
 const props = defineProps({
   deployMode: { type: String, default: 'docker' }
 })
+defineEmits(['back'])
 
 const router = useRouter()
 const showToken = ref(false)
@@ -378,34 +402,65 @@ onMounted(async () => {
 </script>
 
 <style scoped>
+/* ===== 页面容器 ===== */
 .deploy-setup-page {
-  width: 100%;
-  height: 100%;
-  overflow-y: auto;
-  padding: 20px;
+  position: relative;
+  width: 100%; height: 100%;
+  overflow-y: auto; padding: 20px;
+}
+
+/* 背景网格 */
+.bg-grid {
+  position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  background-image:
+    linear-gradient(rgba(var(--jm-accent-2-rgb), 0.15) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(var(--jm-accent-2-rgb), 0.15) 1px, transparent 1px);
+  background-size: 40px 40px;
+  mask-image: radial-gradient(ellipse 60% 50% at 50% 50%, black 40%, transparent 100%);
+  -webkit-mask-image: radial-gradient(ellipse 60% 50% at 50% 50%, black 40%, transparent 100%);
 }
 
 .setup-container {
-  max-width: 460px;
-  margin: 0 auto;
+  position: relative; z-index: 1;
+  max-width: 480px; margin: 0 auto;
+  background: var(--jm-glass-bg);
+  backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
+  border: 1px solid var(--jm-glass-border);
+  border-radius: 20px;
+  padding: 28px 28px 24px;
+  box-shadow:
+    var(--jm-glass-inner-glow),
+    0 8px 40px rgba(0, 0, 0, 0.12),
+    0 0 0 1px rgba(255, 255, 255, 0.04);
 }
 
+/* ===== 标题 ===== */
+.setup-header { display: flex; align-items: center; gap: 14px; margin-bottom: 22px; }
+.setup-header-icon {
+  width: 44px; height: 44px; border-radius: 12px;
+  background: linear-gradient(135deg, rgba(var(--jm-primary-1-rgb), 0.12), rgba(var(--jm-primary-1-rgb), 0.04));
+  border: 1px solid rgba(var(--jm-primary-1-rgb), 0.15);
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 0 16px rgba(var(--jm-primary-1-rgb), 0.08);
+  flex-shrink: 0;
+}
+.setup-header h2 { font-size: 16px; font-weight: 600; color: var(--jm-accent-7); margin: 0 0 3px; }
+.setup-desc { font-size: 12px; color: var(--jm-accent-4); margin: 0; }
+
+/* ===== 表单 ===== */
 .setup-form {
-  background: rgba(var(--jm-accent-1-rgb), 0.4);
-  border: 1px solid var(--jm-accent-2);
-  border-radius: 10px;
+  background: rgba(var(--jm-accent-1-rgb), 0.2);
+  border: 1px solid rgba(var(--jm-accent-2-rgb), 0.12);
+  border-top: 1px solid rgba(255, 255, 255, 0.04);
+  border-radius: 14px;
   padding: 22px 22px 10px;
 }
 
 /* 提供商提示 */
 .provider-tip {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  font-size: 11px;
-  color: var(--jm-accent-4);
-  padding: 0 2px;
-  margin: -8px 0 10px;
+  display: flex; align-items: center; justify-content: space-between;
+  font-size: 11px; color: var(--jm-accent-4);
+  padding: 0 2px; margin: -8px 0 10px;
 }
 
 .ollama-port-section { margin: -4px 0 8px; }
@@ -414,145 +469,131 @@ onMounted(async () => {
 .port-hint { font-size: 11px; color: var(--jm-accent-4); white-space: nowrap; }
 
 .tip-link {
-  color: var(--jm-primary-2);
-  text-decoration: none;
-  font-weight: 500;
-  white-space: nowrap;
+  color: var(--jm-primary-2); text-decoration: none;
+  font-weight: 500; white-space: nowrap;
 }
-.tip-link:hover {
-  color: var(--jm-primary-1);
-}
+.tip-link:hover { color: var(--jm-primary-1); }
 
-/* 高级配置切换 */
+/* ===== 高级配置切换 ===== */
 .adv-toggle {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 9px 12px;
-  margin: 0 0 12px;
-  border-radius: 8px;
-  border: 1px solid var(--jm-accent-2);
-  background: rgba(var(--jm-accent-1-rgb), 0.3);
-  cursor: pointer;
-  user-select: none;
-  transition: border-color 0.2s, background 0.2s;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 14px; margin: 0 0 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(var(--jm-accent-2-rgb), 0.12);
+  background: rgba(var(--jm-accent-1-rgb), 0.15);
+  cursor: pointer; user-select: none;
+  transition: all 0.25s;
 }
 .adv-toggle:hover {
-  border-color: var(--jm-accent-3);
-  background: rgba(var(--jm-accent-1-rgb), 0.6);
+  border-color: rgba(var(--jm-accent-3-rgb, 200,200,200), 0.3);
+  background: rgba(var(--jm-accent-1-rgb), 0.35);
 }
-.adv-toggle-left {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  color: var(--jm-accent-5);
-}
-.adv-label {
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--jm-accent-6);
-}
-.adv-hint {
-  font-size: 11px;
-  color: var(--jm-accent-4);
-}
-.adv-chevron {
-  color: var(--jm-accent-4);
-  transition: transform 0.2s;
-}
-.adv-chevron.open {
-  transform: rotate(180deg);
-}
+.adv-toggle-left { display: flex; align-items: center; gap: 7px; color: var(--jm-accent-5); }
+.adv-label { font-size: 12px; font-weight: 500; color: var(--jm-accent-6); }
+.adv-hint { font-size: 11px; color: var(--jm-accent-4); }
+.adv-chevron { color: var(--jm-accent-4); transition: transform 0.25s; }
+.adv-chevron.open { transform: rotate(180deg); }
 
 /* Token 行 */
-.token-row {
-  display: flex;
-  align-items: center;
-  gap: 2px;
-  width: 100%;
-}
+.token-row { display: flex; align-items: center; gap: 2px; width: 100%; }
 .flex-1 { flex: 1; }
-.sm-btn {
-  flex-shrink: 0;
-  padding: 0 5px;
-  opacity: 0.6;
-  transition: opacity 0.15s;
-}
+.sm-btn { flex-shrink: 0; padding: 0 5px; opacity: 0.5; transition: opacity 0.15s; }
 .sm-btn:hover { opacity: 1; }
 
 /* 端口 */
-.port-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
-}
+.port-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 
-/* 底部操作 */
-.actions {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 12px 0 0;
-}
-
-/* 测试连接 */
-.test-api-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin: -4px 0 14px;
-}
+/* ===== 测试连接 ===== */
+.test-api-row { display: flex; align-items: center; gap: 10px; margin: -4px 0 14px; }
 .test-btn {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  padding: 6px 14px;
-  border-radius: 6px;
-  border: 1px solid var(--jm-accent-2);
-  background: rgba(var(--jm-accent-1-rgb), 0.3);
-  color: var(--jm-accent-6);
-  font-size: 12px;
-  cursor: pointer;
-  transition: all 0.2s;
-  white-space: nowrap;
+  display: flex; align-items: center; gap: 6px;
+  padding: 7px 16px; border-radius: 20px;
+  border: 1px solid rgba(var(--jm-accent-2-rgb), 0.15);
+  background: rgba(var(--jm-accent-1-rgb), 0.2);
+  color: var(--jm-accent-5); font-size: 12px; font-weight: 500;
+  cursor: pointer; transition: all 0.25s; white-space: nowrap;
 }
 .test-btn:hover:not(:disabled) {
-  border-color: var(--jm-primary-2);
   color: var(--jm-primary-2);
-  background: rgba(var(--jm-primary-1-rgb), 0.08);
+  border-color: rgba(var(--jm-primary-1-rgb), 0.25);
+  background: rgba(var(--jm-primary-1-rgb), 0.06);
+  box-shadow: 0 0 12px rgba(var(--jm-primary-1-rgb), 0.08);
 }
-.test-btn:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
-.test-btn.testing {
-  border-color: var(--jm-primary-2);
-  color: var(--jm-primary-2);
-}
+.test-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+.test-btn.testing { color: var(--jm-primary-2); border-color: rgba(var(--jm-primary-1-rgb), 0.2); }
 .test-btn.success {
-  border-color: var(--jm-success-color);
-  color: var(--jm-success-color);
-  background: rgba(var(--jm-success-color-rgb, 34,197,94), 0.06);
+  color: #22c55e;
+  border-color: rgba(34, 197, 94, 0.2);
+  background: rgba(34, 197, 94, 0.06);
+  box-shadow: 0 0 12px rgba(34, 197, 94, 0.08);
 }
 .test-btn.fail {
-  border-color: var(--jm-error-color);
-  color: var(--jm-error-color);
-  background: rgba(var(--jm-error-color-rgb, 239,68,68), 0.06);
+  color: #ef4444;
+  border-color: rgba(239, 68, 68, 0.2);
+  background: rgba(239, 68, 68, 0.06);
+  box-shadow: 0 0 12px rgba(239, 68, 68, 0.08);
 }
-.test-msg {
-  font-size: 11px;
-  color: var(--jm-accent-4);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.test-msg.msg-ok { color: var(--jm-success-color); }
-.test-msg.msg-fail { color: var(--jm-error-color); }
+.test-msg { font-size: 11px; color: var(--jm-accent-4); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.test-msg.msg-ok { color: #22c55e; }
+.test-msg.msg-fail { color: #ef4444; }
 
-@keyframes spin {
-  to { transform: rotate(360deg); }
+/* ===== 底部操作 ===== */
+.actions {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 16px 0 0;
 }
-.spin {
-  animation: spin 1s linear infinite;
+
+/* 返回胶囊 */
+.back-capsule {
+  display: flex; align-items: center; gap: 6px;
+  padding: 6px 14px 6px 10px; border-radius: 20px;
+  border: 1px solid rgba(var(--jm-accent-2-rgb), 0.2);
+  background: transparent;
+  color: var(--jm-accent-4); font-size: 12px;
+  cursor: pointer; transition: all 0.2s;
 }
+.back-capsule:hover {
+  color: var(--jm-primary-2);
+  border-color: rgba(var(--jm-primary-1-rgb), 0.2);
+  background: rgba(var(--jm-primary-1-rgb), 0.03);
+}
+.back-arrow { transition: transform 0.2s; }
+.back-capsule:hover .back-arrow { animation: arrowBounce 0.4s ease; }
+@keyframes arrowBounce {
+  0%, 100% { transform: translateX(0); }
+  50% { transform: translateX(-4px); }
+}
+
+/* CTA 按钮 */
+.cta-btn {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  padding: 8px 24px; height: 38px;
+  font-size: 14px; font-weight: 500; color: #fff;
+  background: linear-gradient(135deg, var(--jm-primary-1), var(--jm-primary-2));
+  border: none; border-radius: 12px; cursor: pointer;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.15),
+    0 4px 16px rgba(var(--jm-primary-1-rgb), 0.25),
+    0 1px 3px rgba(0,0,0,0.1);
+  transition: all 0.2s;
+}
+.cta-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.15),
+    0 6px 24px rgba(var(--jm-primary-1-rgb), 0.35),
+    0 2px 6px rgba(0,0,0,0.12);
+}
+.cta-btn:active:not(:disabled) {
+  transform: translateY(1px);
+  box-shadow:
+    inset 0 2px 4px rgba(0,0,0,0.15),
+    0 1px 4px rgba(var(--jm-primary-1-rgb), 0.15);
+}
+.cta-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+@keyframes spin { to { transform: rotate(360deg); } }
+.spin { animation: spin 1s linear infinite; }
+.fade-in-up { animation: fadeInUp 0.35s ease-out both; }
+@keyframes fadeInUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 </style>

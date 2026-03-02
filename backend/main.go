@@ -7,6 +7,7 @@ import (
 
 	"github.com/DemonZack/simplejrpc-go/core"
 	"guanxi/eazy-claw/internal/handler/rpc"
+	"guanxi/eazy-claw/internal/service"
 )
 
 func main() {
@@ -26,6 +27,11 @@ func main() {
 
 	// Use absolute socket path
 	sock, _ := filepath.Abs(filepath.Join(tempDir, "app.sock"))
+
+	// 自动启动 WS 代理（如果之前已配置启用）
+	service.AutoStartWsProxy()
+	// 进程退出时关闭 WS 代理，释放端口和连接
+	defer service.GetGlobalProxy().Stop()
 
 	// 创建 RPC Server 并注册服务
 	server := rpc.NewServer()

@@ -8,42 +8,57 @@
             <svg viewBox="0 0 24 24" width="20" height="20" fill="none">
               <polygon points="13,2 3,14 12,14 11,22 21,10 12,10" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
             </svg>
-            能力管理
+            技能
           </h2>
-          <span class="header-hint">管理 OpenClaw 的内置技能和社区市场技能</span>
+          <span class="header-hint">浏览和管理 AI 能力</span>
         </div>
-        <button class="refresh-btn" @click="fetchBuiltin()" :disabled="loadingBuiltin" title="刷新">
-          <svg :class="{ spinning: loadingBuiltin }" viewBox="0 0 24 24" width="16" height="16" fill="none"><path d="M1 4v6h6M23 20v-6h-6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M20.49 9A9 9 0 005.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 013.51 15" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <button class="refresh-btn" @click="refreshAll()" :disabled="loadingBuiltin" title="刷新">
+          <svg :class="{ spinning: loadingBuiltin }" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/></svg>
         </button>
       </div>
 
-      <!-- 一级 Tab: 内置 / 市场 -->
+      <!-- 已安装 / 市场 Tab -->
       <div class="main-tab-bar">
         <button class="main-tab" :class="{ active: mainTab === 'builtin' }" @click="mainTab = 'builtin'">
           <svg viewBox="0 0 24 24" width="14" height="14" fill="none"><rect x="3" y="3" width="7" height="7" rx="1" stroke="currentColor" stroke-width="1.5"/><rect x="14" y="3" width="7" height="7" rx="1" stroke="currentColor" stroke-width="1.5"/><rect x="3" y="14" width="7" height="7" rx="1" stroke="currentColor" stroke-width="1.5"/><rect x="14" y="14" width="7" height="7" rx="1" stroke="currentColor" stroke-width="1.5"/></svg>
-          内置技能
-          <span v-if="builtinSkills.length" class="tab-badge">{{ builtinReadyCount }}/{{ builtinSkills.length }}</span>
+          内置
         </button>
-        <button class="main-tab" :class="{ active: mainTab === 'market' }" @click="mainTab = 'market'">
+        <button class="main-tab" :class="{ active: mainTab === 'market' }" @click="mainTab = 'market'; checkClawHub()">
           <svg viewBox="0 0 24 24" width="14" height="14" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="1.5"/><polygon points="16.2,7.8 14.5,14.5 7.8,16.2 9.5,9.5" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>
-          技能市场
+          市场
         </button>
+      </div>
+
+      <!-- 搜索和筛选 -->
+      <div v-if="mainTab === 'builtin'" class="filter-bar">
+        <n-input v-model:value="filterQuery" placeholder="搜索技能..." clearable size="medium" class="filter-input">
+          <template #prefix>
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" style="color:var(--jm-accent-4)"><circle cx="11" cy="11" r="8" stroke="currentColor" stroke-width="1.5"/><line x1="21" y1="21" x2="16.65" y2="16.65" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          </template>
+        </n-input>
+        <div v-if="mainTab === 'builtin'" class="filter-tabs">
+          <button class="filter-tab" :class="{ active: builtinFilter === 'all' }" @click="builtinFilter = 'all'">All ({{ builtinSkills.length }})</button>
+          <button class="filter-tab" :class="{ active: builtinFilter === 'enabled' }" @click="builtinFilter = 'enabled'">✓ 已启用 ({{ builtinReadyCount }})</button>
+          <button class="filter-tab" :class="{ active: builtinFilter === 'disabled' }" @click="builtinFilter = 'disabled'">未启用 ({{ builtinSkills.length - builtinReadyCount }})</button>
+        </div>
       </div>
 
       <!-- ========== 内置技能面板 ========== -->
       <div v-if="mainTab === 'builtin'">
         <div v-if="loadingBuiltin" class="loading-state"><div class="loading-spinner"></div></div>
-        <div v-else-if="builtinSkills.length === 0" class="empty-hint">暂无内置技能</div>
+        <div v-else-if="filteredBuiltinSkills.length === 0" class="empty-hint">暂无匹配的技能</div>
         <div v-else class="card-grid">
-          <div v-for="skill in builtinSkills" :key="skill.name" class="skill-card-v2">
+          <div v-for="skill in filteredBuiltinSkills" :key="skill.name" class="skill-card-v2" @click="openSkillDetail(skill)">
             <div class="card-top">
-              <span class="card-name">{{ skill.name }}</span>
-              <n-switch size="small" :value="skill.enabled" :loading="builtinLoading === skill.name" @update:value="v => toggleBuiltin(skill.name, v)" />
+              <div class="card-name-row">
+                <span class="card-emoji">{{ skill.icon || '🔧' }}</span>
+                <span class="card-name">{{ skill.name }}</span>
+              </div>
+              <n-switch size="small" :value="skill.enabled" :loading="builtinLoading === skill.name" @update:value="v => toggleBuiltin(skill.name, v)" @click.stop />
             </div>
-            <p class="card-desc">{{ truncate(skill.description, 80) }}</p>
+            <p class="card-desc">{{ truncate(skillDesc(skill), 80) }}</p>
             <div class="card-footer">
-              <span class="card-badge" :class="{ ready: skill.enabled }">{{ skill.enabled ? '✓ 已安装' : '✗ 未安装' }}</span>
-              <span class="card-source">openclaw-bundled</span>
+              <span class="card-badge">v1.0.0</span>
             </div>
           </div>
         </div>
@@ -51,6 +66,22 @@
 
       <!-- ========== 技能市场面板 ========== -->
       <div v-if="mainTab === 'market'">
+        <!-- clawhub 未安装提示 -->
+        <div v-if="clawHubChecked && !clawHubReady" class="clawhub-banner">
+          <div class="banner-icon">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none">
+              <polygon points="13,2 3,14 12,14 11,22 21,10 12,10" stroke="var(--jm-primary-1)" stroke-width="1.5" stroke-linejoin="round"/>
+            </svg>
+          </div>
+          <div class="banner-text">
+            <strong>需要安装 clawhub</strong>
+            <span>技能市场依赖 clawhub 工具，首次使用需安装一次（约 10 秒）</span>
+          </div>
+          <n-button type="primary" size="small" @click="doInstallClawHub" :loading="installingHub">
+            {{ installingHub ? '安装中...' : '一键安装' }}
+          </n-button>
+        </div>
+
         <!-- 搜索栏 -->
         <div class="search-bar">
           <n-input
@@ -59,6 +90,7 @@
             clearable
             @keyup.enter="doSearch"
             size="medium"
+            :disabled="!clawHubReady"
           >
             <template #prefix>
               <svg viewBox="0 0 24 24" width="14" height="14" fill="none" style="color: var(--jm-accent-4)">
@@ -67,7 +99,7 @@
               </svg>
             </template>
           </n-input>
-          <n-button type="primary" @click="doSearch" :loading="searching" :disabled="!searchQuery.trim()">搜索</n-button>
+          <n-button type="primary" @click="doSearch" :loading="searching" :disabled="!searchQuery.trim() || !clawHubReady">搜索</n-button>
         </div>
 
         <!-- 推荐技能 -->
@@ -121,8 +153,8 @@
               </div>
               <p class="card-desc">{{ skill.slug }}</p>
               <div class="card-footer">
-                <span class="card-badge">v{{ skill.version }}</span>
                 <span v-if="skill.score" class="card-score">⭐ {{ skill.score }}</span>
+                <span class="card-badge">v{{ skill.version }}</span>
               </div>
             </div>
           </div>
@@ -171,66 +203,181 @@
         </div>
       </div>
 
-      <!-- 详情弹窗 -->
-      <div v-if="detailData" class="detail-overlay" @click.self="detailData = null">
-        <div class="detail-panel">
-          <div class="detail-header">
-            <h3>{{ detailData.name || detailData.slug }}</h3>
-            <button class="close-btn" @click="detailData = null">&times;</button>
-          </div>
-          <div class="detail-body">
-            <div v-if="detailLoading" class="loading-state"><div class="loading-spinner"></div></div>
-            <template v-else>
-              <div class="detail-row" v-if="detailData.slug"><span class="detail-label">Slug</span><span class="detail-val">{{ detailData.slug }}</span></div>
-              <div class="detail-row" v-if="detailData.summary"><span class="detail-label">简介</span><span class="detail-val">{{ detailData.summary }}</span></div>
-              <div class="detail-row" v-if="detailData.version"><span class="detail-label">版本</span><span class="detail-val">v{{ detailData.version }}</span></div>
-              <div class="detail-row" v-if="detailData.owner"><span class="detail-label">作者</span><span class="detail-val">{{ detailData.owner }}</span></div>
-              <div class="detail-row" v-if="detailData.updated"><span class="detail-label">更新</span><span class="detail-val">{{ detailData.updated }}</span></div>
-              <div class="detail-row" v-if="detailData.tags"><span class="detail-label">标签</span><span class="detail-val">{{ detailData.tags }}</span></div>
-              <div class="detail-actions">
-                <n-button type="primary" @click="doInstall(detailData.slug); detailData = null" size="small">安装此技能</n-button>
-              </div>
-            </template>
-          </div>
+      <!-- 技能详情弹框 -->
+      <n-modal v-model:show="showSkillDetail" preset="card" :bordered="false" size="small" style="max-width: 480px;" :title="selectedSkill?.name || selectedSkill?.slug || ''" :mask-closable="true">
+        <!-- Tab 切换 -->
+        <div class="detail-tabs">
+          <button class="dtab" :class="{ active: detailTab === 'info' }" @click="detailTab = 'info'">信息</button>
+          <button v-if="!selectedSkill?.slug || isSelectedInstalled" class="dtab" :class="{ active: detailTab === 'config' }" @click="detailTab = 'config'; loadEnvVars()">配置</button>
         </div>
-      </div>
 
-      <!-- 风险警告弹窗 -->
-      <div v-if="suspiciousData" class="detail-overlay" @click.self="suspiciousData = null">
-        <div class="risk-panel">
-          <div class="risk-header">
-            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" class="risk-icon-svg"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" stroke="#fc8181" stroke-width="1.5"/><line x1="12" y1="9" x2="12" y2="13" stroke="#fc8181" stroke-width="1.5" stroke-linecap="round"/><circle cx="12" cy="17" r="0.5" fill="#fc8181"/></svg>
-            <h3>检测到该技能存在风险</h3>
+        <!-- 信息 Tab -->
+        <div v-if="detailTab === 'info'" class="detail-content">
+          <!-- 描述 -->
+          <div class="info-section">
+            <div v-if="detailLoading" class="loading-inline"><div class="loading-spinner-sm"></div> 获取中...</div>
+            <p v-else class="info-desc">{{ skillDesc(selectedSkill) || selectedSkill?.summary || selectedSkill?.description || '暂无描述' }}</p>
           </div>
-          <div class="risk-body">
-            <p class="risk-slug">{{ suspiciousData.slug }}</p>
-            <div class="risk-detail">
-              <p v-for="(line, i) in suspiciousData.warning.split('\n')" :key="i" class="risk-line">• {{ line }}</p>
+          <!-- 元信息 -->
+          <div class="info-meta">
+            <div class="meta-row">
+              <span class="meta-key">版本</span>
+              <span class="meta-val badge">{{ selectedSkill?.version || '1.0.0' }}</span>
             </div>
-            <p class="risk-hint">该技能被 VirusTotal 标记为可疑，可能包含风险代码。请审查后再决定是否安装。</p>
-          </div>
-          <div class="risk-footer">
-            <n-button quaternary size="small" @click="suspiciousData = null">取消</n-button>
-            <n-button type="error" size="small" @click="doForceInstall" :loading="installingSlug === suspiciousData.slug">我已了解风险，强行安装</n-button>
+            <div class="meta-row">
+              <span class="meta-key">来源</span>
+              <span class="meta-val badge" :class="selectedSkill?.slug ? 'badge-market' : 'badge-builtin'">{{ selectedSkill?.slug ? '市场' : '内置' }}</span>
+            </div>
+            <div v-if="selectedSkill?.name" class="meta-row">
+              <span class="meta-key">标识</span>
+              <span class="meta-val mono">{{ selectedSkill.name }}</span>
+            </div>
           </div>
         </div>
-      </div>
+
+        <!-- 配置 Tab -->
+        <div v-if="detailTab === 'config'" class="detail-content">
+          <p class="config-hint-top">部分技能需要配置 API 密钥或其他参数才能正常使用，可在此添加环境变量。</p>
+
+          <div class="env-list">
+            <div v-for="(item, i) in envVars" :key="i" class="env-row">
+              <n-input v-model:value="item.key" placeholder="KEY" size="small" class="env-key" />
+              <span class="env-eq">=</span>
+              <n-input v-model:value="item.value" placeholder="value" size="small" class="env-value" />
+              <button class="env-del" @click="envVars.splice(i, 1)" title="删除">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none"><line x1="18" y1="6" x2="6" y2="18" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><line x1="6" y1="6" x2="18" y2="18" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+              </button>
+            </div>
+            <button class="env-add" @click="envVars.push({ key: '', value: '' })">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none"><line x1="12" y1="5" x2="12" y2="19" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><line x1="5" y1="12" x2="19" y2="12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+              添加变量
+            </button>
+          </div>
+
+          <div style="display: flex; justify-content: flex-end; margin-top: 8px;">
+            <n-button type="primary" size="small" :loading="savingEnv" @click="doSaveEnvVars">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" style="margin-right: 4px;"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z" stroke="currentColor" stroke-width="1.5"/><path d="M17 21v-8H7v8M7 3v5h8" stroke="currentColor" stroke-width="1.5"/></svg>
+              保存配置
+            </n-button>
+          </div>
+        </div>
+
+        <!-- 底部状态 -->
+        <template #footer>
+          <div class="detail-footer" v-if="!selectedSkill?.slug">
+            <div class="status-row" :class="{ on: selectedSkill?.enabled }">
+              <svg v-if="selectedSkill?.enabled" viewBox="0 0 24 24" width="16" height="16" fill="none"><path d="M22 11.08V12a10 10 0 11-5.93-9.14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><polyline points="22 4 12 14.01 9 11.01" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              <svg v-else viewBox="0 0 24 24" width="16" height="16" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07" stroke="currentColor" stroke-width="2"/></svg>
+              {{ selectedSkill?.enabled ? '已启用' : '未启用' }}
+            </div>
+            <n-switch :value="selectedSkill?.enabled" :loading="builtinLoading === selectedSkill?.name" @update:value="v => { toggleBuiltin(selectedSkill.name, v) }" />
+          </div>
+          <div class="detail-footer" v-else-if="isSelectedInstalled">
+            <span class="status-row on">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none"><path d="M22 11.08V12a10 10 0 11-5.93-9.14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><polyline points="22 4 12 14.01 9 11.01" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              已安装
+            </span>
+            <n-button size="small" type="error" quaternary @click="doUninstall(selectedSkill.slug); showSkillDetail = false" :loading="installingSlug === selectedSkill?.slug">卸载</n-button>
+          </div>
+          <div class="detail-footer" v-else>
+            <span></span>
+            <n-button type="primary" size="small" @click="doInstall(selectedSkill.slug); showSkillDetail = false" :loading="installingSlug === selectedSkill?.slug">安装此技能</n-button>
+          </div>
+        </template>
+      </n-modal>
+
+
     </div>
   </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { NInput, NButton, NSwitch } from 'naive-ui'
+import { NInput, NButton, NSwitch, NModal } from 'naive-ui'
 import {
   searchSkills, inspectSkill, installSkill, uninstallSkill,
   listInstalledSkills, exploreSkills,
-  listBuiltinSkills, installBuiltinSkill, uninstallBuiltinSkill
+  listBuiltinSkills, installBuiltinSkill, uninstallBuiltinSkill,
+  listEnvVars, saveEnvVars,
+  isClawHubInstalled, installClawHub
 } from '@/api/skill'
 import gm from '@/utils/gmssh'
 import cache from '@/stores/cache'
 
 const mainTab = ref('builtin')
+const filterQuery = ref('')
+const builtinFilter = ref('all')
+
+// clawhub 全局安装检测
+const clawHubChecked = ref(false)
+const clawHubReady = ref(true) // 默认不拦截，等检测完再决定
+const installingHub = ref(false)
+
+async function checkClawHub() {
+  try {
+    const res = await isClawHubInstalled()
+    clawHubReady.value = !!res?.installed
+  } catch { clawHubReady.value = false }
+  clawHubChecked.value = true
+}
+
+async function doInstallClawHub() {
+  installingHub.value = true
+  try {
+    await installClawHub()
+    clawHubReady.value = true
+    gm.success('clawhub 安装成功，现在可以使用技能市场了')
+  } catch (e) {
+    gm.error('安装失败: ' + (e.message || ''))
+  } finally {
+    installingHub.value = false
+  }
+}
+
+// 技能详情弹框
+const showSkillDetail = ref(false)
+const selectedSkill = ref(null)
+const detailTab = ref('info')
+
+// 环境变量配置
+const envVars = ref([])
+const savingEnv = ref(false)
+
+async function loadEnvVars() {
+  try {
+    const res = await listEnvVars()
+    envVars.value = (res?.vars || []).map(v => ({ key: v.key, value: v.value }))
+  } catch {}
+}
+
+async function doSaveEnvVars() {
+  // 过滤掉空 key 的行
+  const vars = envVars.value.filter(v => v.key.trim())
+  savingEnv.value = true
+  try {
+    await saveEnvVars({ vars })
+    gm.success('环境变量已保存')
+  } catch (e) {
+    gm.error('保存失败: ' + (e.message || ''))
+  } finally {
+    savingEnv.value = false
+  }
+}
+
+function openSkillDetail(skill) {
+  selectedSkill.value = skill
+  detailTab.value = 'info'
+  showSkillDetail.value = true
+}
+
+const isSelectedInstalled = computed(() => {
+  if (!selectedSkill.value?.slug) return false
+  return installedSkills.value.some(s => s.slug === selectedSkill.value.slug)
+})
+
+function refreshAll() {
+  fetchBuiltin()
+}
 
 function truncate(str, len) {
   if (!str) return ''
@@ -303,6 +450,17 @@ const loadingBuiltin = ref(false)
 const builtinLoading = ref('')
 
 const builtinReadyCount = computed(() => builtinSkills.value.filter(s => s.enabled).length)
+
+const filteredBuiltinSkills = computed(() => {
+  let list = builtinSkills.value
+  if (builtinFilter.value === 'enabled') list = list.filter(s => s.enabled)
+  else if (builtinFilter.value === 'disabled') list = list.filter(s => !s.enabled)
+  if (filterQuery.value.trim()) {
+    const q = filterQuery.value.trim().toLowerCase()
+    list = list.filter(s => s.name.toLowerCase().includes(q) || (s.description || '').toLowerCase().includes(q))
+  }
+  return list
+})
 
 async function fetchBuiltin() {
   loadingBuiltin.value = true
@@ -384,7 +542,7 @@ const exploreSkillsData = ref([])
 const installingSlug = ref('')
 const detailData = ref(null)
 const detailLoading = ref(false)
-const suspiciousData = ref(null)
+
 
 const recommendedSkills = [
   { slug: 'claw-shell', name: '执行命令', icon: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none"><rect x="2" y="3" width="20" height="18" rx="2" stroke="currentColor" stroke-width="1.3"/><path d="M6 9l4 3-4 3M13 15h5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>' },
@@ -428,12 +586,14 @@ async function fetchExplore() {
 }
 
 async function viewDetail(slug) {
-  detailData.value = { slug }
+  selectedSkill.value = { name: slug, slug }
+  detailTab.value = 'info'
+  showSkillDetail.value = true
   detailLoading.value = true
   try {
     const res = await inspectSkill({ slug })
-    detailData.value = { ...detailData.value, ...res }
-  } catch (e) { gm.error('获取详情失败: ' + (e.message || '')); detailData.value = null }
+    selectedSkill.value = { ...selectedSkill.value, ...res, name: res.name || slug, description: res.summary || res.description || '' }
+  } catch (e) { gm.error('获取详情失败: ' + (e.message || '')); showSkillDetail.value = false }
   finally { detailLoading.value = false }
 }
 
@@ -441,22 +601,8 @@ async function doInstall(slug) {
   installingSlug.value = slug
   try {
     const res = await installSkill({ slug })
-    if (res?.suspicious) { suspiciousData.value = { slug: res.slug || slug, warning: res.warning || '该技能被标记为可疑' }; return }
     if (res?.success) { gm.success(res.message || `${slug} 安装成功`); await fetchInstalled() }
   } catch (e) { gm.error('安装失败: ' + (e.message || '')) }
-  finally { installingSlug.value = '' }
-}
-
-async function doForceInstall() {
-  const slug = suspiciousData.value?.slug
-  if (!slug) return
-  suspiciousData.value = null
-  installingSlug.value = slug
-  try {
-    const res = await installSkill({ slug, force: true })
-    if (res?.success) { gm.success(res.message || `${slug} 强制安装成功`); await fetchInstalled() }
-    else gm.error(res?.message || '安装失败')
-  } catch (e) { gm.error('强制安装失败: ' + (e.message || '')) }
   finally { installingSlug.value = '' }
 }
 
@@ -474,62 +620,193 @@ async function doUninstall(slug) {
 }
 
 onMounted(() => {
+  checkClawHub()
   if (cache.builtinSkills !== null) return
   fetchBuiltin()
 })
 </script>
 
 <style scoped>
-.skills-page { width: 100%; height: 100%; overflow-y: auto; padding: 20px; }
-.skills-container { max-width: 960px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px; }
+.skills-page { position: relative; width: 100%; height: 100%; overflow-y: auto; padding: 20px 24px; }
+.skills-container { max-width: 100%; margin: 0 auto; display: flex; flex-direction: column; gap: 16px; }
+
+/* clawhub 安装提示横幅 */
+.clawhub-banner {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 16px; border-radius: 10px;
+  background: linear-gradient(135deg, rgba(var(--jm-primary-1-rgb), 0.06), rgba(var(--jm-primary-1-rgb), 0.02));
+  border: 1px solid rgba(var(--jm-primary-1-rgb), 0.15);
+  margin-bottom: 12px;
+}
+.banner-icon {
+  width: 36px; height: 36px; border-radius: 8px;
+  background: rgba(var(--jm-primary-1-rgb), 0.1);
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.banner-text {
+  flex: 1; display: flex; flex-direction: column; gap: 2px;
+}
+.banner-text strong { font-size: 13px; color: var(--jm-accent-7); }
+.banner-text span { font-size: 11px; color: var(--jm-accent-4); }
 
 .skills-header { display: flex; align-items: flex-start; justify-content: space-between; }
 .header-left { display: flex; flex-direction: column; gap: 4px; }
 .page-title { display: flex; align-items: center; gap: 8px; font-size: 18px; font-weight: 600; color: var(--jm-accent-7); margin: 0; }
 .header-hint { font-size: 12px; color: var(--jm-accent-4); padding-left: 28px; }
+.refresh-btn {
+  display: flex; align-items: center; justify-content: center;
+  width: 32px; height: 32px; border-radius: 8px; border: 1px solid var(--jm-glass-border);
+  background: transparent; color: var(--jm-accent-5); cursor: pointer; transition: all 0.2s;
+}
+.refresh-btn:hover { border-color: var(--jm-accent-3); color: var(--jm-accent-7); }
+.refresh-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+.spinning { animation: spin 0.8s linear infinite; }
 
 /* 一级 Tab */
-.main-tab-bar { display: flex; gap: 6px; background: rgba(var(--jm-accent-1-rgb), 0.4); border-radius: 10px; padding: 4px; }
+.main-tab-bar {
+  display: inline-flex; gap: 0; border-radius: 12px; padding: 3px; width: fit-content;
+  background: rgba(var(--jm-accent-1-rgb), 0.12);
+  border: 1px solid rgba(0, 0, 0, 0.03);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.05);
+}
 .main-tab {
-  flex: 1; padding: 10px 16px; border: none; border-radius: 8px;
-  background: transparent; color: var(--jm-accent-5); font-size: 13px; font-weight: 500;
-  cursor: pointer; transition: all 0.2s;
+  padding: 8px 24px; border: none; border-radius: 9px;
+  background: transparent; color: var(--jm-accent-4); font-size: 13px; font-weight: 500;
+  cursor: pointer; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   display: flex; align-items: center; justify-content: center; gap: 6px;
 }
-.main-tab.active { background: rgba(var(--jm-primary-1-rgb), 0.12); color: var(--jm-primary-2); box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
-.main-tab:hover:not(.active) { color: var(--jm-accent-7); background: rgba(var(--jm-accent-1-rgb), 0.6); }
+.main-tab.active {
+  background: var(--jm-glass-bg-hover); color: var(--jm-primary-1); font-weight: 600;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.04);
+  transform: translateY(-0.5px);
+}
+.main-tab:hover:not(.active) { color: var(--jm-accent-7); background: rgba(255, 255, 255, 0.08); }
 .tab-badge {
   font-size: 11px; padding: 1px 8px; border-radius: 10px;
   background: rgba(var(--jm-primary-1-rgb), 0.15); color: var(--jm-primary-2); font-weight: 600;
 }
 
 /* ========== 卡片网格 ========== */
-.card-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+.card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 14px; }
 .skill-card-v2 {
   display: flex; flex-direction: column; gap: 8px;
-  padding: 14px 16px; border-radius: 10px;
-  border: 1px solid rgba(var(--jm-accent-2-rgb), 0.6);
-  background: rgba(var(--jm-accent-1-rgb), 0.35);
-  transition: border-color 0.2s, box-shadow 0.2s;
+  padding: 16px; border-radius: 14px;
+  border: 1px solid var(--jm-glass-border);
+  background: rgba(var(--jm-accent-1-rgb), 0.3);
+  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+  box-shadow:
+    
+    var(--jm-glass-inner-glow),
+    0 1px 3px rgba(0, 0, 0, 0.04),
+    0 4px 12px rgba(0, 0, 0, 0.03);
+  position: relative;
+  overflow: hidden;
 }
-.skill-card-v2:hover { border-color: var(--jm-primary-2); box-shadow: 0 2px 12px rgba(var(--jm-primary-1-rgb), 0.08); }
+.skill-card-v2:hover {
+  border-color: var(--jm-glass-border-hover);
+  transform: translateY(-3px);
+  box-shadow:
+    0 2px 4px rgba(0, 0, 0, 0.06),
+    0 12px 28px rgba(0, 0, 0, 0.06),
+    0 0 20px rgba(var(--jm-primary-1-rgb), 0.04);
+}
 .card-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-.card-name { font-size: 13px; font-weight: 700; color: var(--jm-accent-7); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.card-name-row { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.card-emoji { font-size: 22px; flex-shrink: 0; }
+.card-name { font-size: 13px; font-weight: 600; color: var(--jm-accent-7); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; letter-spacing: -0.01em; }
 .card-right { display: flex; gap: 4px; flex-shrink: 0; }
 .card-desc {
   margin: 0; font-size: 12px; color: var(--jm-accent-5); line-height: 1.5;
   display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
 }
 .card-icon { margin-right: 6px; }
-.card-footer { display: flex; align-items: center; gap: 8px; }
+.card-footer { display: flex; align-items: center; gap: 8px; margin-top: auto; }
 .card-badge {
   font-size: 10px; padding: 2px 8px; border-radius: 4px; font-weight: 600;
   background: rgba(var(--jm-accent-2-rgb), 0.4); color: var(--jm-accent-4);
+  opacity: 0; transition: opacity 0.2s;
 }
+.skill-card-v2:hover .card-badge { opacity: 1; }
 .card-badge.ready { background: rgba(72,199,142,0.12); color: #48c78e; }
 .card-source { font-size: 10px; color: var(--jm-accent-4); }
 .card-score { font-size: 10px; color: var(--jm-warning-color, #ff9800); }
 .card-time { font-size: 10px; color: var(--jm-accent-4); margin-left: auto; }
+
+/* 搜索筛选 */
+.filter-bar { display: flex; align-items: center; gap: 12px; }
+.filter-input { flex: 1; }
+:deep(.filter-input .n-input) { border-radius: 10px !important; transition: box-shadow 0.3s !important; }
+:deep(.filter-input .n-input--focus) { box-shadow: 0 0 0 2px rgba(var(--jm-primary-1-rgb), 0.12), 0 0 12px rgba(var(--jm-primary-1-rgb), 0.06) !important; }
+.filter-tabs { display: flex; gap: 4px; flex-shrink: 0; }
+.filter-tab {
+  padding: 6px 14px; border-radius: 20px; border: 1px solid var(--jm-glass-border);
+  background: transparent; color: var(--jm-accent-5); font-size: 12px;
+  cursor: pointer; transition: all 0.2s; white-space: nowrap;
+}
+.filter-tab.active { background: var(--jm-primary-1); color: #fff; border-color: var(--jm-primary-1); }
+.filter-tab:hover:not(.active) { border-color: var(--jm-accent-3); color: var(--jm-accent-6); }
+
+/* 详情弹框 */
+.detail-tabs { display: flex; border: 1px solid var(--jm-glass-border); border-radius: 8px; overflow: hidden; margin-bottom: 16px; }
+.dtab { flex: 1; padding: 10px; border: none; background: transparent; color: var(--jm-accent-5); font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.2s; }
+.dtab.active { background: rgba(var(--jm-accent-1-rgb), 0.6); color: var(--jm-accent-7); font-weight: 600; }
+.dtab:hover:not(.active) { background: rgba(var(--jm-accent-1-rgb), 0.3); }
+.detail-content { display: flex; flex-direction: column; gap: 16px; }
+.info-section { }
+.info-desc {
+  margin: 0; font-size: 13px; color: var(--jm-accent-6);
+  line-height: 1.7; word-break: break-word;
+}
+.info-meta {
+  display: flex; flex-direction: column; gap: 0;
+  border: 1px solid var(--jm-glass-border); border-radius: 8px; overflow: hidden;
+}
+.meta-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--jm-accent-2);
+}
+.meta-row:last-child { border-bottom: none; }
+.meta-key { font-size: 12px; color: var(--jm-accent-4); font-weight: 500; }
+.meta-val { font-size: 12px; color: var(--jm-accent-6); }
+.meta-val.badge {
+  padding: 2px 10px; border-radius: 4px;
+  background: rgba(var(--jm-accent-1-rgb), 0.5); font-weight: 500;
+}
+.meta-val.badge-builtin { background: rgba(85,105,250,0.1); color: #5569FA; }
+.meta-val.badge-market { background: rgba(72,199,142,0.1); color: #48c78e; }
+.meta-val.mono { font-family: 'SF Mono','Fira Code',monospace; font-size: 11px; color: var(--jm-accent-5); }
+.config-hint-top { margin: 0; font-size: 12px; color: var(--jm-accent-4); line-height: 1.6; }
+.env-list { display: flex; flex-direction: column; gap: 8px; }
+.env-row { display: flex; align-items: center; gap: 6px; }
+.env-key { flex: 2; }
+.env-eq { color: var(--jm-accent-4); font-family: monospace; font-size: 14px; flex-shrink: 0; }
+.env-value { flex: 3; }
+.env-del {
+  width: 28px; height: 28px; border-radius: 6px; border: none;
+  background: transparent; color: var(--jm-accent-4); cursor: pointer;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  transition: all 0.15s;
+}
+.env-del:hover { background: rgba(229,62,62,0.1); color: #fc8181; }
+.env-add {
+  display: flex; align-items: center; gap: 6px;
+  padding: 8px 12px; border: 1px dashed var(--jm-accent-2); border-radius: 8px;
+  background: transparent; color: var(--jm-accent-4); font-size: 12px;
+  cursor: pointer; transition: all 0.15s;
+}
+.env-add:hover { border-color: var(--jm-primary-2); color: var(--jm-primary-2); }
+.detail-footer { display: flex; align-items: center; justify-content: space-between; }
+.status-row { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--jm-accent-4); }
+.status-row.on { color: #22c55e; }
+
+/* 可点击卡片 */
+.skill-card-v2 { cursor: pointer; }
+
+/* 内联加载 */
+.loading-inline { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--jm-accent-4); }
+.loading-spinner-sm { width: 14px; height: 14px; border: 2px solid var(--jm-accent-2); border-top-color: var(--jm-primary-1); border-radius: 50%; animation: spin 0.8s linear infinite; }
 
 /* 搜索栏 */
 .search-bar { display: flex; gap: 8px; margin-bottom: 12px; }
@@ -538,12 +815,14 @@ onMounted(() => {
 /* 推荐技能 */
 .recommend-section { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
 .recommend-title { font-size: 12px; color: var(--jm-accent-4); display: flex; align-items: center; gap: 4px; }
-.recommend-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.recommend-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px; }
 .recommend-chip {
   display: flex; align-items: center; gap: 8px;
-  padding: 8px 12px; border: 1px solid var(--jm-accent-2); border-radius: 8px;
-  background: rgba(var(--jm-accent-1-rgb), 0.4); cursor: pointer;
-  transition: all 0.15s; text-align: left; color: var(--jm-accent-6);
+  padding: 10px 12px; border: 1px solid var(--jm-glass-border); border-radius: 10px;
+  background: var(--jm-glass-bg); cursor: pointer;
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+  transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1); text-align: left; color: var(--jm-accent-6);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
 }
 .recommend-chip:hover:not(:disabled) { border-color: var(--jm-primary-2); background: rgba(var(--jm-primary-1-rgb), 0.06); }
 .recommend-chip:disabled { opacity: 0.5; cursor: wait; }
@@ -571,8 +850,8 @@ onMounted(() => {
 @keyframes spin { to { transform: rotate(360deg); } }
 
 /* 详情弹窗 */
-.detail-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 100; display: flex; align-items: center; justify-content: center; }
-.detail-panel { background: var(--jm-bg-1, #1e1e2e); border: 1px solid var(--jm-accent-2); border-radius: 12px; width: 420px; max-height: 80vh; overflow-y: auto; box-shadow: 0 16px 48px rgba(0,0,0,0.4); }
+.detail-overlay { position: fixed; inset: 0; background: var(--jm-overlay-bg); z-index: 100; display: flex; align-items: center; justify-content: center; }
+.detail-panel { background: var(--jm-bg-color); border: 1px solid var(--jm-glass-border); border-radius: 12px; width: 420px; max-height: 80vh; overflow-y: auto; box-shadow: 0 16px 48px var(--jm-shadow-color); }
 .detail-header { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; border-bottom: 1px solid var(--jm-accent-2); }
 .detail-header h3 { margin: 0; font-size: 15px; font-weight: 600; color: var(--jm-accent-7); }
 .close-btn { width: 28px; height: 28px; border-radius: 6px; border: none; background: transparent; color: var(--jm-accent-4); font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
@@ -583,15 +862,4 @@ onMounted(() => {
 .detail-val { font-size: 13px; color: var(--jm-accent-6); word-break: break-word; }
 .detail-actions { padding-top: 8px; display: flex; justify-content: flex-end; }
 
-/* 风险面板 */
-.risk-panel { background: var(--jm-bg-1, #1e1e2e); border: 1px solid #e53e3e; border-radius: 12px; width: 440px; box-shadow: 0 16px 48px rgba(229,62,62,0.2); }
-.risk-header { display: flex; align-items: center; gap: 10px; padding: 16px 20px; border-bottom: 1px solid rgba(229,62,62,0.3); background: rgba(229,62,62,0.08); border-radius: 12px 12px 0 0; }
-.risk-header h3 { margin: 0; font-size: 15px; font-weight: 600; color: #fc8181; }
-.risk-icon-svg { flex-shrink: 0; }
-.risk-body { padding: 16px 20px; display: flex; flex-direction: column; gap: 10px; }
-.risk-slug { margin: 0; font-family: monospace; font-size: 13px; color: var(--jm-accent-6); }
-.risk-detail { background: rgba(229,62,62,0.06); border: 1px solid rgba(229,62,62,0.15); border-radius: 8px; padding: 10px 14px; }
-.risk-line { margin: 4px 0; font-size: 12px; color: #fc8181; line-height: 1.5; }
-.risk-hint { margin: 0; font-size: 11px; color: var(--jm-accent-4); line-height: 1.5; }
-.risk-footer { padding: 12px 20px; display: flex; justify-content: flex-end; gap: 8px; border-top: 1px solid var(--jm-accent-2); }
 </style>

@@ -9,7 +9,7 @@ body,
 #app {
     width: 100%;
     height: 100%;
-    background: var(--jm-bg-color);
+    background: var(--jm-bg-gradient, var(--jm-bg-color));
     color: var(--jm-accent-7);
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC',
         'Hiragino Sans GB', 'Microsoft YaHei', 'Helvetica Neue', Helvetica, Arial,
@@ -20,10 +20,10 @@ body,
     -moz-osx-font-smoothing: grayscale;
 }
 
-/* 自定义滚动条 */
+/* ===== Custom Scrollbar ===== */
 ::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
+    width: 5px;
+    height: 5px;
 }
 
 ::-webkit-scrollbar-track {
@@ -31,25 +31,159 @@ body,
 }
 
 ::-webkit-scrollbar-thumb {
-    background: var(--jm-accent-3);
-    border-radius: 3px;
+    background: rgba(var(--jm-accent-3-rgb), 0.5);
+    border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
     background: var(--jm-accent-4);
 }
 
-/* 全局动画 */
+/* ===== Glass Card Utility ===== */
+.glass-card {
+    background: var(--jm-glass-bg);
+    backdrop-filter: blur(var(--jm-glass-blur));
+    -webkit-backdrop-filter: blur(var(--jm-glass-blur));
+    border: 1px solid var(--jm-glass-border);
+    box-shadow: var(--jm-glass-inner-glow), var(--jm-shadow-elevation-1);
+    border-radius: 14px;
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.glass-card:hover {
+    background: var(--jm-glass-bg-hover);
+    border-color: var(--jm-glass-border-hover);
+    box-shadow: var(--jm-glass-inner-glow), var(--jm-shadow-elevation-2);
+    transform: translateY(-2px);
+}
+
+/* ===== Glow Hover Effects ===== */
+.glow-hover-blue {
+    position: relative;
+}
+
+.glow-hover-blue::after {
+    content: '';
+    position: absolute;
+    inset: -1px;
+    border-radius: inherit;
+    opacity: 0;
+    transition: opacity 0.4s;
+    pointer-events: none;
+    z-index: -1;
+    background: radial-gradient(ellipse at 50% 100%, var(--jm-glow-blue) 0%, transparent 70%);
+    filter: blur(16px);
+}
+
+.glow-hover-blue:hover::after {
+    opacity: 1;
+}
+
+.glow-hover-purple {
+    position: relative;
+}
+
+.glow-hover-purple::after {
+    content: '';
+    position: absolute;
+    inset: -1px;
+    border-radius: inherit;
+    opacity: 0;
+    transition: opacity 0.4s;
+    pointer-events: none;
+    z-index: -1;
+    background: radial-gradient(ellipse at 50% 100%, var(--jm-glow-purple) 0%, transparent 70%);
+    filter: blur(16px);
+}
+
+.glow-hover-purple:hover::after {
+    opacity: 1;
+}
+
+.glow-hover-cyan {
+    position: relative;
+}
+
+.glow-hover-cyan::after {
+    content: '';
+    position: absolute;
+    inset: -1px;
+    border-radius: inherit;
+    opacity: 0;
+    transition: opacity 0.4s;
+    pointer-events: none;
+    z-index: -1;
+    background: radial-gradient(ellipse at 50% 100%, var(--jm-glow-cyan) 0%, transparent 70%);
+    filter: blur(16px);
+}
+
+.glow-hover-cyan:hover::after {
+    opacity: 1;
+}
+
+.glow-hover-green {
+    position: relative;
+}
+
+.glow-hover-green::after {
+    content: '';
+    position: absolute;
+    inset: -1px;
+    border-radius: inherit;
+    opacity: 0;
+    transition: opacity 0.4s;
+    pointer-events: none;
+    z-index: -1;
+    background: radial-gradient(ellipse at 50% 100%, var(--jm-glow-green) 0%, transparent 70%);
+    filter: blur(16px);
+}
+
+.glow-hover-green:hover::after {
+    opacity: 1;
+}
+
+.glow-hover-amber {
+    position: relative;
+}
+
+.glow-hover-amber::after {
+    content: '';
+    position: absolute;
+    inset: -1px;
+    border-radius: inherit;
+    opacity: 0;
+    transition: opacity 0.4s;
+    pointer-events: none;
+    z-index: -1;
+    background: radial-gradient(ellipse at 50% 100%, var(--jm-glow-amber) 0%, transparent 70%);
+    filter: blur(16px);
+}
+
+.glow-hover-amber:hover::after {
+    opacity: 1;
+}
+
+/* ===== Mono Typography ===== */
+.mono,
+.font-mono {
+    font-family: var(--jm-font-mono);
+}
+
+/* ===== Animations ===== */
 @keyframes fadeInUp {
     from {
         opacity: 0;
-        transform: translateY(20px);
+        transform: translateY(12px);
     }
 
     to {
         opacity: 1;
         transform: translateY(0);
     }
+}
+
+.fade-in-up {
+    animation: fadeInUp 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 @keyframes pulse {
@@ -74,53 +208,69 @@ body,
     }
 }
 
-.fade-in-up {
-    animation: none;
+@keyframes breathe {
+
+    0%,
+    100% {
+        opacity: 0.6;
+        transform: scale(1);
+    }
+
+    50% {
+        opacity: 1;
+        transform: scale(1.05);
+    }
 }
 
-/* ===== Naive UI 全局主题色覆盖：#5569FA ===== */
+@keyframes spin-refresh {
+    to {
+        transform: rotate(360deg);
+    }
+}
 
-/* 日期选择器 — 选中日期高亮（边框样式，避免覆盖文字） */
+.spinning {
+    animation: spin-refresh 0.8s linear infinite;
+}
+
+/* ===== Naive UI Global Overrides ===== */
 .n-date-panel-date--selected .n-date-panel-date__trigger {
-    background: rgba(85, 105, 250, 0.12) !important;
+    background: rgba(var(--jm-primary-1-rgb), 0.12) !important;
     border-radius: 8px !important;
-    box-shadow: inset 0 0 0 2px #5569FA !important;
+    box-shadow: inset 0 0 0 2px var(--jm-primary-1) !important;
 }
 
 .n-date-panel-date--selected .n-date-panel-date__date {
-    color: #5569FA !important;
+    color: var(--jm-primary-1) !important;
     font-weight: 600 !important;
 }
 
 .n-date-panel-date--current .n-date-panel-date__trigger {
-    border-color: #5569FA !important;
+    border-color: var(--jm-primary-1) !important;
 }
 
-/* 日期选择器 「此刻」「确认」按钮 */
 .n-date-panel .n-button--primary-type {
-    background-color: #5569FA !important;
-    border-color: #5569FA !important;
+    background-color: var(--jm-primary-1) !important;
+    border-color: var(--jm-primary-1) !important;
     border-radius: 8px !important;
 }
 
 .n-date-panel .n-button--primary-type:hover {
-    background-color: #6b7cfb !important;
-    border-color: #6b7cfb !important;
+    background-color: var(--jm-primary-2) !important;
+    border-color: var(--jm-primary-2) !important;
 }
 
-/* Modal 内所有 primary 按钮（创建任务 / 保存修改） */
 .n-modal-container .n-button--primary-type {
-    background-color: #5569FA !important;
-    border-color: #5569FA !important;
+    background-color: var(--jm-primary-1) !important;
+    border-color: var(--jm-primary-1) !important;
     border-radius: 8px !important;
 }
 
 .n-modal-container .n-button--primary-type:hover {
-    background-color: #6b7cfb !important;
-    border-color: #6b7cfb !important;
+    background-color: var(--jm-primary-2) !important;
+    border-color: var(--jm-primary-2) !important;
 }
 
-/* ===== 全局刷新按钮 ===== */
+/* ===== Global Refresh Button ===== */
 .refresh-btn {
     display: flex;
     align-items: center;
@@ -128,8 +278,10 @@ body,
     width: 32px;
     height: 32px;
     border-radius: 8px;
-    border: 1px solid var(--jm-accent-2);
-    background: transparent;
+    border: 1px solid var(--jm-glass-border);
+    background: var(--jm-glass-bg);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
     color: var(--jm-accent-5);
     cursor: pointer;
     transition: all 0.2s;
@@ -139,7 +291,7 @@ body,
 .refresh-btn:hover:not(:disabled) {
     border-color: var(--jm-primary-2);
     color: var(--jm-primary-2);
-    background: rgba(var(--jm-primary-1-rgb), 0.06);
+    background: rgba(var(--jm-primary-1-rgb), 0.08);
 }
 
 .refresh-btn:disabled {
@@ -147,18 +299,17 @@ body,
     cursor: not-allowed;
 }
 
-.spinning {
-    animation: spin-refresh 0.8s linear infinite;
-}
-
-@keyframes spin-refresh {
-    to {
-        transform: rotate(360deg);
-    }
-}
-
 .header-actions {
     display: flex;
     align-items: center;
     gap: 8px;
+}
+
+/* ===== Light mode scrollbar ===== */
+:root[data-theme='light'] ::-webkit-scrollbar-thumb {
+    background: rgba(var(--jm-accent-3-rgb), 0.4);
+}
+
+:root[data-theme='light'] ::-webkit-scrollbar-thumb:hover {
+    background: var(--jm-accent-4);
 }

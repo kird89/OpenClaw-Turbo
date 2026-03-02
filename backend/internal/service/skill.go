@@ -2,9 +2,7 @@ package service
 
 import (
 	"fmt"
-	"os"
 	"os/exec"
-	"path/filepath"
 	"regexp"
 	"strings"
 )
@@ -18,47 +16,47 @@ func NewSkillService() *SkillService {
 
 // ========== 通用 clawhub 命令执行 ==========
 
-// findNpx 查找 npx 的绝对路径（兼容 nvm 环境）
-func findNpx() string {
-	// 先从 PATH 查找
-	if p, err := exec.LookPath("npx"); err == nil {
-		return p
-	}
-	// 扫描常见 nvm 安装位置
-	nvmDirs := []string{
-		"/usr/local/nvm/versions/node",
-		filepath.Join(os.Getenv("HOME"), ".nvm/versions/node"),
-	}
-	for _, base := range nvmDirs {
-		entries, _ := os.ReadDir(base)
-		for i := len(entries) - 1; i >= 0; i-- { // 倒序 = 最新版本优先
-			p := filepath.Join(base, entries[i].Name(), "bin", "npx")
-			if _, err := os.Stat(p); err == nil {
-				return p
-			}
+// isClawHubGlobal 检测 clawhub 是否可用（全局安装或 npx 缓存中）
+func isClawHubGlobal() bool {
+	if getDeployMode() == "local" {
+		// 先检测全局安装
+		out, err := exec.Command("bash", "-lc", "which clawhub").CombinedOutput()
+		if err == nil && len(strings.TrimSpace(string(out))) > 0 {
+			return true
 		}
+		// 再检测 npx 缓存（npx clawhub -V 不会重新下载如果已缓存）
+		err = exec.Command("bash", "-lc", "npx clawhub -V").Run()
+		return err == nil
 	}
-	return "npx" // fallback
+	out, err := exec.Command("docker", "exec", containerName, "sh", "-c", "which clawhub || npx clawhub -V").CombinedOutput()
+	return err == nil && len(strings.TrimSpace(string(out))) > 0
 }
 
-// runClawHubCmd 在 ~/.openclaw 目录下执行 npx clawhub 命令
-// 同时支持 local 和 docker 两种部署模式
-func runClawHubCmd(args ...string) ([]byte, error) {
-	if getDeployMode() == "local" {
-		home, _ := os.UserHomeDir()
-		workDir := filepath.Join(home, ".openclaw")
-		os.MkdirAll(workDir, 0755)
+// IsClawHubInstalled 检测 clawhub 是否可用
+func (s *SkillService) IsClawHubInstalled() map[string]any {
+	return map[string]any{"installed": isClawHubGlobal()}
+}
 
-		npxPath := findNpx()
-		cmd := exec.Command(npxPath, append([]string{"-y", "clawhub"}, args...)...)
-		cmd.Dir = workDir
-		out, err := cmd.CombinedOutput()
-		if err != nil && len(out) == 0 {
-			return []byte(err.Error()), err
-		}
-		return out, err
+// InstallClawHub 预安装 clawhub 到 npx 缓存
+func (s *SkillService) InstallClawHub() (map[string]any, error) {
+	var cmd *exec.Cmd
+	if getDeployMode() == "local" {
+		cmd = exec.Command("bash", "-lc", "npx -y clawhub -V")
+	} else {
+		cmd = exec.Command("docker", "exec", containerName, "sh", "-c", "npx -y clawhub -V")
 	}
-	// Docker: 通过 sh -c 动态解析 ~, 避免 hardcode /root 路径导致权限或路径错误
+	out, err := cmd.CombinedOutput()
+	output := strings.TrimSpace(string(out))
+	if err != nil {
+		return nil, fmt.Errorf("安装失败: %s", output)
+	}
+	return map[string]any{"success": true, "message": "clawhub 安装成功"}, nil
+}
+
+// runClawHubCmd 在 ~/.openclaw 目录下执行 clawhub 命令
+// 优先使用全局安装的 clawhub（快），否则回退到 npx -y clawhub（慢）
+func runClawHubCmd(args ...string) ([]byte, error) {
+	// 对参数进行 shell 安全转义
 	var safeArgs []string
 	for _, arg := range args {
 		if strings.Contains(arg, " ") {
@@ -67,7 +65,37 @@ func runClawHubCmd(args ...string) ([]byte, error) {
 			safeArgs = append(safeArgs, arg)
 		}
 	}
-	cmdStr := fmt.Sprintf("mkdir -p ~/.openclaw && cd ~/.openclaw && npx -y clawhub %s", strings.Join(safeArgs, " "))
+
+	// 判断 clawhub 是否在 PATH 中（全局安装）
+	clawCmd := "npx -y clawhub"
+	if getDeployMode() == "local" {
+		// 优先检测 which clawhub（PATH 中存在）
+		out, err := exec.Command("bash", "-lc", "which clawhub").CombinedOutput()
+		if err == nil && len(strings.TrimSpace(string(out))) > 0 {
+			clawCmd = "clawhub" // 全局安装，直接调用（最快）
+		} else {
+			clawCmd = "npx --no-install clawhub" // npx 缓存中，使用离线模式避免限速
+		}
+	} else {
+		out, err := exec.Command("docker", "exec", containerName, "sh", "-c", "which clawhub").CombinedOutput()
+		if err == nil && len(strings.TrimSpace(string(out))) > 0 {
+			clawCmd = "clawhub"
+		} else {
+			clawCmd = "npx --no-install clawhub"
+		}
+	}
+
+	if getDeployMode() == "local" {
+		cmdStr := fmt.Sprintf("mkdir -p ~/.openclaw && cd ~/.openclaw && %s %s", clawCmd, strings.Join(safeArgs, " "))
+		cmd := exec.Command("bash", "-lc", cmdStr)
+		out, err := cmd.CombinedOutput()
+		if err != nil && len(out) == 0 {
+			return []byte(err.Error()), err
+		}
+		return out, err
+	}
+	// Docker
+	cmdStr := fmt.Sprintf("mkdir -p ~/.openclaw && cd ~/.openclaw && %s %s", clawCmd, strings.Join(safeArgs, " "))
 	dockerArgs := []string{"exec", containerName, "sh", "-c", cmdStr}
 	return exec.Command("docker", dockerArgs...).CombinedOutput()
 }
@@ -115,30 +143,13 @@ func (s *SkillService) InstallSkill(req map[string]any) (map[string]any, error) 
 		return nil, fmt.Errorf("技能 slug 不能为空")
 	}
 
-	force, _ := req["force"].(bool)
-
-	args := []string{"install", slug}
-	if force {
-		args = append(args, "--force")
-	}
+	args := []string{"install", slug, "--force"}
 
 	out, err := runClawHubCmd(args...)
 	output := strings.TrimSpace(string(out))
 
 	if strings.Contains(output, "already installed") || strings.Contains(output, "Already") {
 		return map[string]any{"success": true, "message": "技能已安装"}, nil
-	}
-
-	// 检测 VirusTotal suspicious 警告
-	if strings.Contains(output, "suspicious") || strings.Contains(output, "flagged as suspicious") {
-		warning := extractSuspiciousWarning(output)
-		return map[string]any{
-			"success":    false,
-			"suspicious": true,
-			"warning":    warning,
-			"slug":       slug,
-			"message":    "检测到该技能存在安全风险",
-		}, nil
 	}
 
 	if err != nil {
@@ -262,10 +273,10 @@ func (s *SkillService) UninstallBuiltinSkill(req map[string]any) (map[string]any
 // ========== 解析函数 ==========
 
 // parseSearchResults 解析搜索结果
-// 格式: "slug vVersion  Name  (score)"
+// 格式: "slug  Name  (score)" 或 "slug vVersion  Name  (score)"
 func parseSearchResults(output string) []map[string]any {
 	var results []map[string]any
-	re := regexp.MustCompile(`^(\S+)\s+v([\d.]+)\s+(.+?)(?:\s+\(([^)]+)\))?$`)
+	re := regexp.MustCompile(`^(\S+)\s+(?:v([\d.]+)\s+)?(.+?)\s+\(([^)]+)\)$`)
 	for _, line := range strings.Split(output, "\n") {
 		line = strings.TrimSpace(line)
 		if line == "" {
@@ -274,12 +285,12 @@ func parseSearchResults(output string) []map[string]any {
 		m := re.FindStringSubmatch(line)
 		if m != nil {
 			item := map[string]any{
-				"slug":    m[1],
-				"version": m[2],
-				"name":    strings.TrimSpace(m[3]),
+				"slug":  m[1],
+				"name":  strings.TrimSpace(m[3]),
+				"score": m[4],
 			}
-			if m[4] != "" {
-				item["score"] = m[4]
+			if m[2] != "" {
+				item["version"] = m[2]
 			}
 			results = append(results, item)
 		}

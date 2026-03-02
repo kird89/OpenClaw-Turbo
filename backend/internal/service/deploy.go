@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"sync"
 	"guanxi/eazy-claw/internal/dto"
@@ -18,6 +19,25 @@ import (
 
 // DeployService 部署服务
 type DeployService struct{}
+
+func init() {
+	// GMSSH 插件进程可能 PATH 受限，确保常见系统路径可用
+	extraPaths := []string{
+		"/usr/local/sbin",
+		"/usr/local/bin",
+		"/usr/sbin",
+		"/usr/bin",
+		"/sbin",
+		"/bin",
+	}
+	currentPath := os.Getenv("PATH")
+	for _, p := range extraPaths {
+		if !strings.Contains(currentPath, p) {
+			currentPath = currentPath + ":" + p
+		}
+	}
+	os.Setenv("PATH", currentPath)
+}
 
 // NewDeployService 创建部署服务实例
 func NewDeployService() *DeployService {
@@ -32,21 +52,61 @@ var (
 	deploySuccess  bool
 )
 
-// 部署模式持久化
+// 部署模式持久化 — 放在 GMSSH 不会清理的持久目录
 func getDeployModeFile() string {
-	return filepath.Join(getTmpDir(), "deploy_mode")
+	dir := "/.__gmssh/tmp/GMClaw"
+	os.MkdirAll(dir, 0755)
+	return filepath.Join(dir, "deploy_mode")
 }
 
 func getDeployMode() string {
+	// 1) 先读缓存文件
 	data, err := os.ReadFile(getDeployModeFile())
-	if err != nil {
+	if err == nil {
+		mode := strings.TrimSpace(string(data))
+		if mode == "local" || mode == "docker" {
+			return mode
+		}
+	}
+	// 2) 缓存丢失（如 GMSSH 更新清空 tmp），自动检测
+	detected := detectDeployMode()
+	saveDeployMode(detected)
+	return detected
+}
+
+// IsClawInstalled 检查 OpenClaw 是否已安装（验证实际部署状态，忽略残留文件）
+func (s *DeployService) IsClawInstalled() map[string]any {
+	// 1) openclaw 命令存在 → shell/本地安装
+	if _, err := exec.LookPath("openclaw"); err == nil {
+		return map[string]any{"installed": true, "reason": "binary"}
+	}
+	// 2) Docker 容器存在（运行中或已停止）→ Docker 部署
+	if out, err := exec.Command("docker", "inspect", "--format", "{{.State.Status}}", "gmssh-openclaw").Output(); err == nil && len(strings.TrimSpace(string(out))) > 0 {
+		return map[string]any{"installed": true, "reason": "docker"}
+	}
+	// 都不存在 → 未安装，清理残留文件
+	os.Remove(getDeployModeFile())
+	return map[string]any{"installed": false}
+}
+
+// detectDeployMode 根据实际环境判断部署模式
+func detectDeployMode() string {
+	// 检查 Docker 容器是否存在
+	out, err := exec.Command("docker", "inspect", "--format", "{{.State.Status}}", "gmssh-openclaw").Output()
+	if err == nil && len(strings.TrimSpace(string(out))) > 0 {
 		return "docker"
 	}
-	mode := strings.TrimSpace(string(data))
-	if mode == "local" {
+	// 检查本地 openclaw 二进制是否安装
+	if _, err := exec.LookPath("openclaw"); err == nil {
 		return "local"
 	}
-	return "docker"
+	// 检查 systemd 服务
+	if out, err := exec.Command("systemctl", "is-enabled", "openclaw").Output(); err == nil {
+		if strings.TrimSpace(string(out)) == "enabled" {
+			return "local"
+		}
+	}
+	return "docker" // 默认
 }
 
 func saveDeployMode(mode string) {
@@ -54,9 +114,19 @@ func saveDeployMode(mode string) {
 	os.WriteFile(getDeployModeFile(), []byte(mode), 0644)
 }
 
-const (
-	pluginBinPath = "/.__gmssh/plugin/official/docker/app/bin"
-)
+// getDockerComposeCmd 检测可用的 docker compose 命令形式
+// 优先 "docker compose"（CLI 插件），回退 "docker-compose"（独立二进制）
+func getDockerComposeCmd() (name string, args []string, ok bool) {
+	// 尝试 docker compose (V2 plugin)
+	if err := exec.Command("docker", "compose", "version").Run(); err == nil {
+		return "docker", []string{"compose"}, true
+	}
+	// 尝试 docker-compose (standalone)
+	if err := exec.Command("docker-compose", "version").Run(); err == nil {
+		return "docker-compose", nil, true
+	}
+	return "", nil, false
+}
 
 // getDataDir 获取数据目录 /opt/gmclaw
 func getDataDir() string {
@@ -67,33 +137,27 @@ func getDataDir() string {
 func (s *DeployService) CheckEnvironment() (*dto.CheckEnvResp, error) {
 	resp := &dto.CheckEnvResp{}
 
-	// 1. 检测插件路径
-	if _, err := os.Stat(pluginBinPath); err == nil {
-		resp.PluginPathExists = true
-	}
-
-	// 2. 检测 docker 命令
+	// 1. 检测 docker 命令
 	if err := exec.Command("docker", "--version").Run(); err == nil {
 		resp.DockerReady = true
 	}
 
-	// 3. 检测 docker compose 命令
-	if err := exec.Command("docker", "compose", "version").Run(); err == nil {
-		resp.DockerComposeReady = true
-	}
+	// 2. 检测 docker compose 命令（兼容 docker compose 和 docker-compose）
+	_, _, composeOk := getDockerComposeCmd()
+	resp.DockerComposeReady = composeOk
 
-	// 4. 检测 Node.js
+	// 3. 检测 Node.js
 	if out, err := exec.Command("node", "--version").Output(); err == nil {
 		resp.NodeReady = true
 		resp.NodeVersion = strings.TrimSpace(string(out))
 	}
 
-	// 5. 检测 pnpm
+	// 4. 检测 pnpm
 	if err := exec.Command("pnpm", "--version").Run(); err == nil {
 		resp.PnpmReady = true
 	}
 
-	resp.AllReady = resp.PluginPathExists && resp.DockerReady && resp.DockerComposeReady
+	resp.AllReady = resp.DockerReady && resp.DockerComposeReady
 	return resp, nil
 }
 
@@ -298,7 +362,7 @@ func (s *DeployService) Deploy(req dto.DeployReq) (*dto.DeployResp, error) {
 	}
 
 	// 生成 .env 文件
-	envContent := fmt.Sprintf("OPENCLAW_GATEWAY_MODE=local\nOPENCLAW_GATEWAY_TOKEN=%s\n", req.Token)
+	envContent := fmt.Sprintf("OPENCLAW_GATEWAY_MODE=local\nOPENCLAW_GATEWAY_TOKEN=%s\n\n# === PLUGINS ===\n", req.Token)
 	if err := os.WriteFile(envFile, []byte(envContent), 0644); err != nil {
 		return nil, fmt.Errorf("写入 .env 失败: %v", err)
 	}
@@ -358,9 +422,11 @@ func getTmpDir() string {
 	return absPath
 }
 
-// getLocalDeployDir 本地部署目录 = tmpDir/openclaw-cn
+// getLocalDeployDir 本地部署源码目录
 func getLocalDeployDir() string {
-	return filepath.Join(getTmpDir(), "openclaw-cn")
+	dir := "/.__gmssh/tmp/GMClaw"
+	os.MkdirAll(dir, 0755)
+	return dir
 }
 
 // getScriptsDir 脚本目录 = tmpDir 同级的 scripts/
@@ -463,6 +529,11 @@ func (s *DeployService) runLocalDeploy(req dto.DeployReq) {
 	if _, err := os.Stat(filepath.Join(cloneDir, "package.json")); os.IsNotExist(err) {
 		addDeployLog("📦 正在克隆 OpenClaw 仓库...")
 		os.MkdirAll(filepath.Dir(cloneDir), 0755)
+		// 清理可能存在的残留目录（重部署场景）
+		if _, dirErr := os.Stat(cloneDir); dirErr == nil {
+			addDeployLog("🗑️ 清理旧目录...")
+			os.RemoveAll(cloneDir)
+		}
 		cmd := exec.Command("git", "clone", "https://gitee.com/OpenClaw-CN/openclaw-cn.git", cloneDir)
 		out, err := cmd.CombinedOutput()
 		if err != nil {
@@ -699,6 +770,7 @@ func (s *DeployService) getLocalClawStatus() (*dto.ClawStatusResp, error) {
 	configPath := getOpenClawConfigPath()
 	data, err := os.ReadFile(configPath)
 	if err == nil {
+		resp.Installed = true // 配置文件存在即认为已安装
 		var config map[string]any
 		if json.Unmarshal(data, &config) == nil {
 			if gw, ok := config["gateway"].(map[string]any); ok {
@@ -706,6 +778,11 @@ func (s *DeployService) getLocalClawStatus() (*dto.ClawStatusResp, error) {
 					resp.WebPort = int(port)
 				}
 			}
+		}
+	} else {
+		// 配置文件不存在，但 openclaw 二进制存在也算已安装
+		if _, err := exec.LookPath("openclaw"); err == nil {
+			resp.Installed = true
 		}
 	}
 
@@ -725,6 +802,180 @@ func (s *DeployService) getLocalClawStatus() (*dto.ClawStatusResp, error) {
 	return resp, nil
 }
 
+// WS 代理信息（运行时设置）
+var wsProxyPort int
+var wsProxyToken string
+
+// SetWsProxyInfo 设置 WS 代理端口和认证令牌
+func SetWsProxyInfo(port int, token string) {
+	wsProxyPort = port
+	wsProxyToken = token
+}
+
+// GetClawWsInfo 获取 WS 代理连接信息（前端用）
+func (s *DeployService) GetClawWsInfo() (*dto.ClawWsInfoResp, error) {
+	if wsProxyPort == 0 {
+		return nil, fmt.Errorf("WS 代理未启动")
+	}
+	return &dto.ClawWsInfoResp{
+		Port:  wsProxyPort,
+		Token: wsProxyToken,
+	}, nil
+}
+
+// === WS 代理配置持久化 ===
+
+type wsProxyConfig struct {
+	Enabled bool `json:"enabled"`
+	Port    int  `json:"port"`
+}
+
+func getWsProxyConfigPath() string {
+	home, _ := os.UserHomeDir()
+	return filepath.Join(home, ".gmclaw_ws.json")
+}
+
+func loadWsProxyConfig() wsProxyConfig {
+	cfg := wsProxyConfig{Enabled: false, Port: 37300}
+	data, err := os.ReadFile(getWsProxyConfigPath())
+	if err != nil {
+		return cfg
+	}
+	json.Unmarshal(data, &cfg)
+	if cfg.Port == 0 {
+		cfg.Port = 37300
+	}
+	return cfg
+}
+
+func saveWsProxyConfig(cfg wsProxyConfig) error {
+	data, _ := json.MarshalIndent(cfg, "", "  ")
+	return os.WriteFile(getWsProxyConfigPath(), data, 0644)
+}
+
+// AutoStartWsProxy 服务启动时自动恢复 WS 代理（如果之前已启用）
+func AutoStartWsProxy() {
+	cfg := loadWsProxyConfig()
+	if !cfg.Enabled {
+		fmt.Println("WS 代理未启用（可在对话菜单中开启）")
+		return
+	}
+	proxy := GetGlobalProxy()
+	port, err := proxy.Start(cfg.Port)
+	if err != nil {
+		fmt.Printf("WS 代理自动启动失败: %v\n", err)
+		return
+	}
+	fmt.Printf("WS 代理已启动, port: %d\n", port)
+}
+
+// GetWsProxyStatus 获取 WS 代理状态
+func (s *DeployService) GetWsProxyStatus() (map[string]any, error) {
+	cfg := loadWsProxyConfig()
+	proxy := GetGlobalProxy()
+	return map[string]any{
+		"enabled": cfg.Enabled,
+		"port":    cfg.Port,
+		"running": proxy.IsRunning(),
+	}, nil
+}
+
+// ToggleWsProxy 开启或关闭 WS 代理
+func (s *DeployService) ToggleWsProxy(req map[string]any) (map[string]any, error) {
+	enabled, _ := req["enabled"].(bool)
+	portF, hasPort := req["port"].(float64)
+	force, _ := req["force"].(bool)
+
+	cfg := loadWsProxyConfig()
+	if hasPort && int(portF) > 0 {
+		cfg.Port = int(portF)
+	}
+	cfg.Enabled = enabled
+	saveWsProxyConfig(cfg)
+
+	proxy := GetGlobalProxy()
+
+	if enabled {
+		// 已经在目标端口运行且不强制重启，直接返回成功
+		if proxy.IsRunning() && proxy.GetPort() == cfg.Port && !force {
+			return map[string]any{
+				"success": true,
+				"port":    cfg.Port,
+				"message": fmt.Sprintf("WS 代理已在端口 %d 运行", cfg.Port),
+			}, nil
+		}
+		// 端口变了或未运行，先停后启
+		if proxy.IsRunning() {
+			proxy.Stop()
+		}
+		port, err := proxy.Start(cfg.Port)
+		if err != nil {
+			return map[string]any{
+				"success": false,
+				"message": fmt.Sprintf("启动失败: %v", err),
+			}, nil
+		}
+		return map[string]any{
+			"success": true,
+			"port":    port,
+			"message": fmt.Sprintf("WS 代理已启动在端口 %d，请确保防火墙已放行该端口", port),
+		}, nil
+	}
+
+	// 关闭
+	proxy.Stop()
+	return map[string]any{
+		"success": true,
+		"message": "WS 代理已关闭",
+	}, nil
+}
+
+// GetRecentLogs 获取 OpenClaw 近期日志
+func (s *DeployService) GetRecentLogs(req map[string]any) (map[string]any, error) {
+	countF, _ := req["count"].(float64)
+	count := int(countF)
+	if count <= 0 || count > 50 {
+		count = 10
+	}
+
+	// 优先使用前端传入的 mode，避免 getDeployMode 误判
+	mode, _ := req["mode"].(string)
+	if mode == "" {
+		mode = getDeployMode()
+	}
+	var cmd *exec.Cmd
+	if mode == "local" {
+		cmd = exec.Command("journalctl", "-u", "openclaw", "-n", fmt.Sprintf("%d", count), "--no-pager", "-o", "short-iso")
+	} else {
+		cmd = exec.Command("docker", "logs", "--tail", fmt.Sprintf("%d", count), "gmssh-openclaw")
+	}
+
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		fmt.Printf("[GetRecentLogs] mode=%s, cmd error: %v, output: %s\n", mode, err, string(out))
+		return map[string]any{
+			"logs":  []string{fmt.Sprintf("获取日志失败 (mode=%s): %v", mode, err)},
+		}, nil
+	}
+
+	// 去除 ANSI 转义码
+	ansiRe := regexp.MustCompile(`\x1b\[[0-9;]*m`)
+	cleaned := ansiRe.ReplaceAllString(string(out), "")
+
+	lines := strings.Split(strings.TrimSpace(cleaned), "\n")
+	var filtered []string
+	for _, l := range lines {
+		l = strings.TrimSpace(l)
+		if l != "" {
+			filtered = append(filtered, l)
+		}
+	}
+
+	return map[string]any{
+		"logs": filtered,
+	}, nil
+}
+
 // getDockerClawStatus 获取 Docker 容器状态
 func (s *DeployService) getDockerClawStatus() (*dto.ClawStatusResp, error) {
 	resp := &dto.ClawStatusResp{
@@ -736,11 +987,18 @@ func (s *DeployService) getDockerClawStatus() (*dto.ClawStatusResp, error) {
 	out, err := exec.Command("docker", "inspect", "--format",
 		"{{.State.Status}}|{{.State.StartedAt}}", "gmssh-openclaw").Output()
 	if err != nil {
+		// 容器不存在，检查配置文件判断是否曾安装过
+		if _, cfgErr := os.Stat(getOpenClawConfigPath()); cfgErr == nil {
+			resp.Installed = true
+		}
 		resp.Running = false
 		resp.Status = "stopped"
 		resp.Uptime = "-"
 		return resp, nil
 	}
+
+	// 容器存在即已安装
+	resp.Installed = true
 
 	parts := strings.Split(strings.TrimSpace(string(out)), "|")
 	if len(parts) >= 2 {
@@ -819,9 +1077,17 @@ func (s *DeployService) UninstallClaw() (map[string]any, error) {
 		return s.uninstallLocalClaw()
 	}
 	// Docker 卸载
+	// 先获取容器使用的镜像名（避免硬编码）
+	imageOut, _ := exec.Command("docker", "inspect", "--format", "{{.Config.Image}}", "gmssh-openclaw").Output()
+	imageName := strings.TrimSpace(string(imageOut))
+
 	exec.Command("docker", "stop", "gmssh-openclaw").CombinedOutput()
 	exec.Command("docker", "rm", "-f", "gmssh-openclaw").CombinedOutput()
-	exec.Command("docker", "rmi", "-f", "gmssh/openclaw:2026.02.17").CombinedOutput()
+
+	// 仅在获取到镜像名时才删除镜像
+	if imageName != "" {
+		exec.Command("docker", "rmi", "-f", imageName).CombinedOutput()
+	}
 
 	dataDir := getDataDir()
 	if err := os.RemoveAll(dataDir); err != nil {
@@ -916,7 +1182,6 @@ func (s *DeployService) UpdateModelConfig(req dto.UpdateModelReq) (map[string]an
 							"input": 0, "output": 0,
 						},
 						"id":        modelName,
-						"input":     []string{"text"},
 						"maxTokens": 8192,
 						"name":      modelName,
 						"reasoning": false,
@@ -1202,7 +1467,6 @@ func (s *DeployService) generateOpenClawConfig(req dto.DeployReq) map[string]any
 								"output":     0,
 							},
 							"id":        modelName,
-							"input":     []string{"text"},
 							"maxTokens": 8192,
 							"name":      modelName,
 							"reasoning": false,
@@ -1221,7 +1485,11 @@ func (s *DeployService) runDockerCompose(dataDir, composeFile string, webPort in
 	// ====== 第一步：拉取镜像（独立步骤，避免长时间拉取影响容器创建）======
 	addDeployLog("🐳 正在拉取镜像，请耐心等待...")
 
-	pullCmd := exec.Command("docker", "compose", "-f", composeFile, "-p", "gmclaw", "pull")
+	composeName, composePrefix, _ := getDockerComposeCmd()
+	pullArgs := make([]string, 0, len(composePrefix)+5)
+	pullArgs = append(pullArgs, composePrefix...)
+	pullArgs = append(pullArgs, "-f", composeFile, "-p", "gmclaw", "pull")
+	pullCmd := exec.Command(composeName, pullArgs...)
 	pullCmd.Dir = dataDir
 
 	pullStderr, _ := pullCmd.StderrPipe()
@@ -1273,7 +1541,10 @@ func (s *DeployService) runDockerCompose(dataDir, composeFile string, webPort in
 	// ====== 第三步：创建并启动容器 ======
 	addDeployLog("🚀 正在创建并启动容器...")
 
-	upCmd := exec.Command("docker", "compose", "-f", composeFile, "-p", "gmclaw", "up", "-d")
+	upArgs := make([]string, 0, len(composePrefix)+6)
+	upArgs = append(upArgs, composePrefix...)
+	upArgs = append(upArgs, "-f", composeFile, "-p", "gmclaw", "up", "-d")
+	upCmd := exec.Command(composeName, upArgs...)
 	upCmd.Dir = dataDir
 
 	upStderr, err := upCmd.StderrPipe()

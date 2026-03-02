@@ -66,3 +66,77 @@ func (s *Server) ApplyAgentTemplate(req *gsock.Request) (any, error) {
 	}
 	return result, nil
 }
+
+// ========== 多 Agent 管理 ==========
+
+// ListAgents 获取Agent列表
+func (s *Server) ListAgents(req *gsock.Request) (any, error) {
+	rpcutil.SetLanguage(req)
+	result, err := service.NewAgentService().ListAgents()
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
+// CreateAgent 创建Agent
+func (s *Server) CreateAgent(req *gsock.Request) (any, error) {
+	var args dto.CreateAgentReq
+	if err := rpcutil.ParseParams(req, &args); err != nil {
+		return nil, err
+	}
+	result, err := service.NewAgentService().CreateAgent(args)
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
+// UpdateAgent 更新Agent
+func (s *Server) UpdateAgent(req *gsock.Request) (any, error) {
+	var args dto.UpdateAgentReq
+	if err := rpcutil.ParseParams(req, &args); err != nil {
+		return nil, err
+	}
+	result, err := service.NewAgentService().UpdateAgent(args)
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
+// DeleteAgent 删除Agent
+func (s *Server) DeleteAgent(req *gsock.Request) (any, error) {
+	var args dto.DeleteAgentReq
+	if err := rpcutil.ParseParams(req, &args); err != nil {
+		return nil, err
+	}
+	result, err := service.NewAgentService().DeleteAgent(args)
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
+// GetAgentDetail 获取Agent详情
+func (s *Server) GetAgentDetail(req *gsock.Request) (any, error) {
+	var args dto.GetAgentDetailReq
+	if err := rpcutil.ParseParams(req, &args); err != nil {
+		return nil, err
+	}
+	result, err := service.NewAgentService().GetAgentDetail(args)
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
+// GetConfiguredModels 获取已配置的模型列表
+func (s *Server) GetConfiguredModels(req *gsock.Request) (any, error) {
+	rpcutil.SetLanguage(req)
+	result, err := service.NewAgentService().GetConfiguredModels()
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
+}

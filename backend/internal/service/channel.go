@@ -107,9 +107,17 @@ func autoApproveDevicePairing() bool {
 // runNpxCmd 根据部署模式执行 npx 命令
 func runNpxCmd(args ...string) ([]byte, error) {
 	if getDeployMode() == "local" {
-		cmd := exec.Command("npx", args...)
-		cmd.Dir = getLocalDeployDir()
-		return cmd.CombinedOutput()
+		// 通过 bash -lc 执行，加载完整登录 shell 环境（与终端一致）
+		var safeArgs []string
+		for _, a := range args {
+			if strings.Contains(a, " ") {
+				safeArgs = append(safeArgs, fmt.Sprintf("'%s'", a))
+			} else {
+				safeArgs = append(safeArgs, a)
+			}
+		}
+		cmdStr := fmt.Sprintf("cd %s && npx %s", getLocalDeployDir(), strings.Join(safeArgs, " "))
+		return exec.Command("bash", "-lc", cmdStr).CombinedOutput()
 	}
 	dockerArgs := append([]string{"exec", containerName, "npx"}, args...)
 	return exec.Command("docker", dockerArgs...).CombinedOutput()
@@ -245,6 +253,8 @@ func writeOpenClawConfig(config map[string]any) error {
 	} else {
 		configPath = filepath.Join(getDataDir(), "conf", "openclaw.json")
 	}
+	// 移除 meta 字段，避免版本冲突
+	delete(config, "meta")
 	data, err := json.MarshalIndent(config, "", "  ")
 	if err != nil {
 		return fmt.Errorf("序列化配置失败: %v", err)
@@ -309,9 +319,51 @@ func (s *ChannelService) SaveChannel(req map[string]any) (map[string]any, error)
 		}
 	}
 
-	// 特殊处理：针对钉钉通道，固定写入 enableAICard: false 关闭实验性卡片功能
+	// Telegram: 只保留 botToken, allowFrom, enabled
+	if channelKey == "telegram" {
+		channelConfig = map[string]any{
+			"botToken":  req["botToken"],
+			"allowFrom": req["allowFrom"],
+			"enabled":   req["enabled"],
+		}
+	}
+
+	// 钉钉：固定写入 enableAICard: false
 	if channelKey == "dingtalk" {
 		channelConfig["enableAICard"] = false
+	}
+
+	// Discord: 从 token + guildId 构建完整配置
+	if channelKey == "discord" {
+		token, _ := req["token"].(string)
+		guildId, _ := req["guildId"].(string)
+		enabled, _ := req["enabled"].(bool)
+		channelConfig = map[string]any{
+			"token":       token,
+			"groupPolicy": "allowlist",
+			"dm": map[string]any{
+				"enabled": false,
+			},
+			"retry": map[string]any{
+				"attempts":    3,
+				"minDelayMs":  500,
+				"maxDelayMs":  30000,
+				"jitter":      0.1,
+			},
+			"guilds": map[string]any{
+				guildId: map[string]any{
+					"users":          []string{"*"},
+					"requireMention": true,
+					"channels": map[string]any{
+						"*": map[string]any{
+							"allow":          true,
+							"requireMention": true,
+						},
+					},
+				},
+			},
+			"enabled": enabled,
+		}
 	}
 
 	channels[channelKey] = channelConfig
@@ -393,4 +445,33 @@ func (s *ChannelService) ToggleChannel(req map[string]any) (map[string]any, erro
 		status = "已启用"
 	}
 	return map[string]any{"success": true, "message": fmt.Sprintf("通道%s", status)}, nil
+}
+
+// ApprovePairing 批准 Telegram 配对码
+func (s *ChannelService) ApprovePairing(req map[string]any) (map[string]any, error) {
+	code, _ := req["code"].(string)
+	code = strings.TrimSpace(code)
+	if code == "" {
+		return nil, fmt.Errorf("配对码不能为空")
+	}
+
+	var cmd *exec.Cmd
+	if getDeployMode() == "local" {
+		clawBin := filepath.Join(getLocalDeployDir(), "node_modules", ".bin", "openclaw")
+		cmd = exec.Command(clawBin, "pairing", "approve", "telegram", code)
+		cmd.Dir = getLocalDeployDir()
+	} else {
+		cmd = exec.Command("docker", "exec", "gmssh-openclaw", "openclaw", "pairing", "approve", "telegram", code)
+	}
+
+	out, err := cmd.CombinedOutput()
+	output := strings.TrimSpace(string(out))
+	if err != nil {
+		if output != "" {
+			return nil, fmt.Errorf("配对失败: %s", output)
+		}
+		return nil, fmt.Errorf("配对失败: %v", err)
+	}
+
+	return map[string]any{"success": true, "message": "配对码已批准，约一小时内生效"}, nil
 }

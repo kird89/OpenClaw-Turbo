@@ -36,6 +36,7 @@ func (s *Server) RegisterHandles(ds interface {
 	ds.RegisterHandle("deploy", s.Deploy)
 	ds.RegisterHandle("getDeployLogs", s.GetDeployLogs)
 	ds.RegisterHandle("getClawStatus", s.GetClawStatus)
+	ds.RegisterHandle("isClawInstalled", s.IsClawInstalled)
 	ds.RegisterHandle("checkPorts", s.CheckPorts)
 	ds.RegisterHandle("getClawConfig", s.GetClawConfig)
 	ds.RegisterHandle("stopClaw", s.StopClaw)
@@ -45,6 +46,10 @@ func (s *Server) RegisterHandles(ds interface {
 	ds.RegisterHandle("updateModelConfig", s.UpdateModelConfig)
 	ds.RegisterHandle("updateMemoryConfig", s.UpdateMemoryConfig)
 	ds.RegisterHandle("installNodeEnv", s.InstallNodeEnv)
+	ds.RegisterHandle("getClawWsInfo", s.GetClawWsInfo)
+	ds.RegisterHandle("getWsProxyStatus", s.GetWsProxyStatus)
+	ds.RegisterHandle("toggleWsProxy", s.ToggleWsProxy)
+	ds.RegisterHandle("getRecentLogs", s.GetRecentLogs)
 
 	// Agent管理接口
 	ds.RegisterHandle("getAgentFiles", s.GetAgentFiles)
@@ -53,11 +58,20 @@ func (s *Server) RegisterHandles(ds interface {
 	ds.RegisterHandle("getAgentTemplates", s.GetAgentTemplates)
 	ds.RegisterHandle("applyAgentTemplate", s.ApplyAgentTemplate)
 
+	// 多Agent管理接口
+	ds.RegisterHandle("listAgents", s.ListAgents)
+	ds.RegisterHandle("createAgent", s.CreateAgent)
+	ds.RegisterHandle("updateAgent", s.UpdateAgent)
+	ds.RegisterHandle("deleteAgent", s.DeleteAgent)
+	ds.RegisterHandle("getAgentDetail", s.GetAgentDetail)
+	ds.RegisterHandle("getConfiguredModels", s.GetConfiguredModels)
+
 	// 通道管理接口
 	ds.RegisterHandle("getChannels", s.GetChannels)
 	ds.RegisterHandle("saveChannel", s.SaveChannel)
 	ds.RegisterHandle("deleteChannel", s.DeleteChannel)
 	ds.RegisterHandle("toggleChannel", s.ToggleChannel)
+	ds.RegisterHandle("approvePairing", s.ApprovePairing)
 
 	// 技能管理接口
 	ds.RegisterHandle("searchSkills", s.SearchSkills)
@@ -70,6 +84,12 @@ func (s *Server) RegisterHandles(ds interface {
 	ds.RegisterHandle("installBuiltinSkill", s.InstallBuiltinSkill)
 	ds.RegisterHandle("uninstallBuiltinSkill", s.UninstallBuiltinSkill)
 	ds.RegisterHandle("getActiveSkillCount", s.GetActiveSkillCount)
+	ds.RegisterHandle("isClawHubInstalled", s.IsClawHubInstalled)
+	ds.RegisterHandle("installClawHub", s.InstallClawHub)
+	ds.RegisterHandle("listEnvVars", s.ListEnvVars)
+	ds.RegisterHandle("saveEnvVars", s.SaveEnvVars)
+	ds.RegisterHandle("getModelsConfig", s.GetModelsConfig)
+	ds.RegisterHandle("saveModelsConfig", s.SaveModelsConfig)
 
 	// 定时任务接口
 	ds.RegisterHandle("cronStatus", s.CronStatus)

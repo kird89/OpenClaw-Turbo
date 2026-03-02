@@ -39,14 +39,19 @@ const routes = [
         component: () => import('@/views/Chat.vue'),
     },
     {
+        path: '/conversation',
+        name: 'Conversation',
+        component: () => import('@/views/Conversation.vue'),
+    },
+    {
         path: '/agents',
         name: 'Agents',
         component: () => import('@/views/Agents.vue'),
     },
     {
-        path: '/cyber-worker',
-        name: 'CyberWorker',
-        component: () => import('@/views/CyberWorker.vue'),
+        path: '/models',
+        name: 'Models',
+        component: () => import('@/views/Models.vue'),
     },
 
 ]

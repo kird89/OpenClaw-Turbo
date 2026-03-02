@@ -15,3 +15,7 @@ export function deleteChannel(params) {
 export function toggleChannel(params) {
     return gm.request('toggleChannel', params)
 }
+
+export function approvePairing(params) {
+    return gm.request('approvePairing', params)
+}
