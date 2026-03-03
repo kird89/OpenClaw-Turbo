@@ -11,7 +11,7 @@ OpenClaw-Turbo dramatically simplifies the deployment and management of AI agent
 Whether you are a performance-focused source-build enthusiast or a container-first DevOps engineer, OpenClaw-Turbo provides an intuitive graphical interface that frees you from complex terminal configurations.
 
 [🌐 官网](https://www.gmssh.com) •
-[![Chinese](https://img.shields.io/badge/Lang-%E7%AE%80%E4%BD%93%E4%B8%AD%E6%96%87-brightgreen)](https://github.com/GMSSH/OpenClaw-Turbo/edit/main/README.cn.md)
+[![Chinese](https://img.shields.io/badge/Lang-%E7%AE%80%E4%BD%93%E4%B8%AD%E6%96%87-brightgreen)](https://github.com/GMSSH/OpenClaw-Turbo/blob/main/README.cn.md)
 [![English](http://img.shields.io/badge/Lang-English-blue)](https://github.com/GMSSH/OpenClaw-Turbo/blob/main/README.md)
 ---
 
