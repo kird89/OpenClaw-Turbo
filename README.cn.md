@@ -1,10 +1,8 @@
 # 🚀 OpenClaw-Turbo
 
-**🦞 你的私人 AI 助手 (Personal AI Assistant) | 建立在 [GMSSH](https://web.gmssh.com) 生态基础上的全能管理应用**     [🌐 官网](https://www.gmssh.com)  
+**🦞 你的私人 AI 助手 (Personal AI Assistant) | 建立在 [GMSSH](https://web.gmssh.com) 生态基础上的全能管理应用**
 
 [![Chinese](https://img.shields.io/badge/Lang-%E7%AE%80%E4%BD%93%E4%B8%AD%E6%96%87-brightgreen)](https://github.com/GMSSH/OpenClaw-Turbo/blob/main/README.cn.md)  [![English](http://img.shields.io/badge/Lang-English-blue)](https://github.com/GMSSH/OpenClaw-Turbo/blob/main/README.md)
-
-
 ---
 
 **更安全 · 更懂中文 · 适配国内 IM 的基础设施**
