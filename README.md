@@ -135,16 +135,15 @@ Trigger specific Agent behaviors automatically
 ### 🖥️ Interface Preview
 
  **Dashboard Overview**  Runtime status at a glance、Model parameters clearly displayed、Gateway network information fully visible  
-<img width="1458" height="924" alt="image" src="https://github.com/user-attachments/assets/e762e4fa-0dd2-4a29-9de2-629542cd231a" />
+<img width="1106" height="907" alt="控制台英文" src="https://github.com/user-attachments/assets/49119cac-034c-4ba0-9390-5817223fb43d" />
  **hird-Party Platform Integration**  - One-click access to:QQ、WeCom (Enterprise WeChat)、DingTalk、Feishu
-<img width="1459" height="882" alt="image" src="https://github.com/user-attachments/assets/bcbdecb2-f62c-45e0-a28e-4a72b9f52a67" />
+<img width="1109" height="914" alt="三方平台接入英文" src="https://github.com/user-attachments/assets/f22d526a-c224-4c09-b7ba-72f4a2d2bc35" />
  **Persona Management**  Refine and shape your AI’s identity tags just like editing a document.
-<img width="1464" height="915" alt="image" src="https://github.com/user-attachments/assets/b16ad2fd-dd95-4a83-a462-900998038411" />
+<img width="1108" height="920" alt="人格管理英文" src="https://github.com/user-attachments/assets/35ea8634-7253-45fe-829c-122f198fa5d3" />
  **Capability Center**  51+ built-in skills ready to use with one click ,Expand functionality through the integrated marketplace  
-<img width="1461" height="915" alt="image" src="https://github.com/user-attachments/assets/6f1e44bc-3b0c-4cf5-8e38-40d383654f5c" />
+<img width="1112" height="915" alt="能力中心英文" src="https://github.com/user-attachments/assets/70d75376-30fc-44e4-9731-1eeb652418b4" />
  **Scheduled Tasks**  Powerful automation task editor with support for recurring command triggers.
-<img width="1459" height="920" alt="image" src="https://github.com/user-attachments/assets/86a76088-ce22-4537-96f2-4d12ef117d64" />
-
+<img width="1103" height="910" alt="定时任务英文" src="https://github.com/user-attachments/assets/97191d8a-e542-4ae9-a06c-a57e80f3f595" />
 ---
 
 ### 🌟Coming Soon: Cyber Employees
@@ -152,6 +151,7 @@ Trigger specific Agent behaviors automatically
 We are developing a **Cyber Employees** module based on the GMSSH-OpenClaw ecosystem ——A next-generation intelligent agent framework designed to deploy specialized virtual digital employees for enterprise workflows.
 
 Stay tuned 🚀
+<img width="1098" height="912" alt="赛博员工英文" src="https://github.com/user-attachments/assets/a760d9e1-de03-4bc6-b126-91d9ab180321" />
 
 ### 📜 License
 
