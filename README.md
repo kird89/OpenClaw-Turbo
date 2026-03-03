@@ -134,15 +134,24 @@ Trigger specific Agent behaviors automatically
 
 ### 🖥️ Interface Preview
 
- **Dashboard Overview**  Runtime status at a glance、Model parameters clearly displayed、Gateway network information fully visible  
+ **Dashboard Overview**  Runtime status at a glance、Model parameters clearly displayed、Gateway network information fully visible
+ 
 <img width="1106" height="907" alt="控制台英文" src="https://github.com/user-attachments/assets/49119cac-034c-4ba0-9390-5817223fb43d" />
+
  **hird-Party Platform Integration**  - One-click access to:QQ、WeCom (Enterprise WeChat)、DingTalk、Feishu
+ 
 <img width="1109" height="914" alt="三方平台接入英文" src="https://github.com/user-attachments/assets/f22d526a-c224-4c09-b7ba-72f4a2d2bc35" />
+
  **Persona Management**  Refine and shape your AI’s identity tags just like editing a document.
+ 
 <img width="1108" height="920" alt="人格管理英文" src="https://github.com/user-attachments/assets/35ea8634-7253-45fe-829c-122f198fa5d3" />
+
  **Capability Center**  51+ built-in skills ready to use with one click ,Expand functionality through the integrated marketplace  
+ 
 <img width="1112" height="915" alt="能力中心英文" src="https://github.com/user-attachments/assets/70d75376-30fc-44e4-9731-1eeb652418b4" />
+
  **Scheduled Tasks**  Powerful automation task editor with support for recurring command triggers.
+ 
 <img width="1103" height="910" alt="定时任务英文" src="https://github.com/user-attachments/assets/97191d8a-e542-4ae9-a06c-a57e80f3f595" />
 ---
 
