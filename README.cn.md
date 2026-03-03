@@ -8,8 +8,9 @@
 
 **OpenClaw-Turbo** 极大地简化了 AI 智能体的部署与管理流程。无论你是追求极致性能的源码编译控，还是偏好容器化的 DevOps 工程师，OpenClaw-Turbo 都能为你提供直观的图形化界面，让你彻底告别繁琐的终端配置。
 
-[🌐 官网](https://www.gmssh.com) • [English README](https://www.google.com/search?q=%23)
-
+[🌐 官网](https://www.gmssh.com) •
+[![Chinese](https://img.shields.io/badge/Lang-%E7%AE%80%E4%BD%93%E4%B8%AD%E6%96%87-brightgreen)](https://github.com/GMSSH/OpenClaw-Turbo/edit/main/README.cn.md)
+[![English](http://img.shields.io/badge/Lang-English-blue)](https://github.com/GMSSH/OpenClaw-Turbo/blob/main/README.md)
 ---
 
 ### 📥 下载与使用
