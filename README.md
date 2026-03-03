@@ -1,12 +1,10 @@
 # 🚀 OpenClaw-Turbo
 
 🦞 **Your Personal AI Assistant**  
-An All-in-One Management Application Built on the [GMSSH](https://web.gmssh.com) Ecosystem     [🌐 官网](https://www.gmssh.com)  
+An All-in-One Management Application Built on the [GMSSH](https://web.gmssh.com) Ecosystem 
 
 [![Chinese](https://img.shields.io/badge/Lang-%E7%AE%80%E4%BD%93%E4%B8%AD%E6%96%87-brightgreen)](https://github.com/GMSSH/OpenClaw-Turbo/blob/main/README.cn.md)
 [![English](http://img.shields.io/badge/Lang-English-blue)](https://github.com/GMSSH/OpenClaw-Turbo/blob/main/README.md)
-
-
 ---
 
 **More Secure · Better Chinese Understanding · Optimized for Domestic IM Infrastructure**
