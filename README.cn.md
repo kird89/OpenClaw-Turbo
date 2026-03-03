@@ -93,21 +93,22 @@ pnpm run dev
 ### 🖥️ 界面预览
 
  **控制台**  运行状态、模型参数与网关网络一目了然 
-<img width="1458" height="924" alt="image" src="https://github.com/user-attachments/assets/e762e4fa-0dd2-4a29-9de2-629542cd231a" />
+<img width="1464" height="911" alt="控制台" src="https://github.com/user-attachments/assets/b1e34d13-21c4-49d9-8a75-77b38b67da6c" />
  **三方平台接入**  一键接入QQ、企业微信、钉钉、飞书
-<img width="1459" height="882" alt="image" src="https://github.com/user-attachments/assets/bcbdecb2-f62c-45e0-a28e-4a72b9f52a67" />
+<img width="1463" height="912" alt="三方平台" src="https://github.com/user-attachments/assets/cb3740a5-d26e-4757-aeee-b6e52eff694d" />
  **人格管理**  像写文档一样打磨 AI 的身份标签 
-<img width="1464" height="915" alt="image" src="https://github.com/user-attachments/assets/b16ad2fd-dd95-4a83-a462-900998038411" />
+<img width="1469" height="913" alt="人格管理" src="https://github.com/user-attachments/assets/04483ded-8ae2-4732-ac09-5a52edb12e44" />
  **能力中心**  内置 51+ 种技能点击即用，支持市场扩展 
-<img width="1461" height="915" alt="image" src="https://github.com/user-attachments/assets/6f1e44bc-3b0c-4cf5-8e38-40d383654f5c" />
+<img width="1468" height="913" alt="能力中心" src="https://github.com/user-attachments/assets/f6b3acd8-7e03-4ce9-90a4-9121b75ebecb" />
  **定时任务**  强大的自动化任务编辑弹窗，支持周期性指令触发 
-<img width="1459" height="920" alt="image" src="https://github.com/user-attachments/assets/86a76088-ce22-4537-96f2-4d12ef117d64" />
+<img width="1456" height="910" alt="定时任务" src="https://github.com/user-attachments/assets/a31c49e0-b6fc-4dbc-b5a5-8cc6f37799ac" />
 
 ---
 
 ### 🌟 即将到来：赛博员工 (Cyber Employees)
 
-我们正在基于 **GMSSH-Openclaw 生态** 开发**“赛博员工”**模块——这是一种全新的智能体形态，旨在为企业流程部署专门化的虚拟数字员工。敬请期待！
+我们正在基于 **GMSSH-Openclaw 生态** 开发“赛博员工”模块——这是一种全新的智能体形态，旨在为企业流程部署专门化的虚拟数字员工。敬请期待！
+<img width="1460" height="913" alt="赛博员工" src="https://github.com/user-attachments/assets/09975d9c-5b60-4ef3-8d57-34ab85bb9409" />
 
 ### 📜 开源协议 (License)
 
